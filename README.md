@@ -636,9 +636,9 @@ If you use World Model Lens in your research, please cite:
 
 ```bibtex
 @software{worldmodellens,
-  title = {World Model Lens: Interpretability for Any World Model},
-  author = {World Model Lens Team},
-  year = {2024},
+  title = {World Model Lens: Interpretability for World Models},
+  author = {Bhavith Chandra Challagundla},
+  year = {2026},
   url = {https://github.com/Bhavith-Chandra/WorldModelLens}
 }
 ```
