@@ -140,7 +140,7 @@ class CircuitDiscovery:
             target_nodes = [nodes[-1].name] if len(nodes) > 1 else [nodes[0].name]
 
         for i, source_node in enumerate(nodes):
-            for target_node in nodes[i + 1:]:
+            for target_node in nodes[i + 1 :]:
                 strength = self.tracer.compute_single_attribution(
                     cache, source_node.name, target_node.name, metric_fn
                 )
@@ -184,10 +184,8 @@ class CircuitDiscovery:
         edge_attributions: Dict[Tuple[str, str], float] = {}
 
         for i, source in enumerate(components):
-            for target in components[i + 1:]:
-                strength = self.tracer.compute_single_attribution(
-                    cache, source, target, metric_fn
-                )
+            for target in components[i + 1 :]:
+                strength = self.tracer.compute_single_attribution(cache, source, target, metric_fn)
                 edge_attributions[(source, target)] = strength
 
         return edge_attributions
@@ -235,23 +233,27 @@ class CircuitDiscovery:
         """
         circuit_nodes = []
         for node_name in nodes:
-            circuit_nodes.append(CircuitNode(
-                name=node_name,
-                importance=0.0,
-                in_degree=0,
-                out_degree=0,
-            ))
+            circuit_nodes.append(
+                CircuitNode(
+                    name=node_name,
+                    importance=0.0,
+                    in_degree=0,
+                    out_degree=0,
+                )
+            )
 
         circuit_edges = []
         node_set = set(nodes)
 
         for (source, target), strength in edges.items():
             if source in node_set and target in node_set:
-                circuit_edges.append(CircuitEdge(
-                    source=source,
-                    target=target,
-                    strength=strength,
-                ))
+                circuit_edges.append(
+                    CircuitEdge(
+                        source=source,
+                        target=target,
+                        strength=strength,
+                    )
+                )
 
         return Circuit(
             nodes=circuit_nodes,
@@ -295,12 +297,14 @@ class CircuitDiscovery:
             metric_without = metric_fn(test_cache)
             importance = (clean_metric - metric_without) / (clean_metric + 1e-8)
 
-            bottlenecks.append({
-                "component": comp,
-                "importance": float(importance),
-                "position": i,
-                "total_components": len(components),
-            })
+            bottlenecks.append(
+                {
+                    "component": comp,
+                    "importance": float(importance),
+                    "position": i,
+                    "total_components": len(components),
+                }
+            )
 
         bottlenecks.sort(key=lambda x: x["importance"], reverse=True)
         return bottlenecks
@@ -371,10 +375,12 @@ class CircuitComparator:
         if not common_nodes_set:
             return None
 
-        common_nodes = [node for node in circuits_to_compare[0].nodes if node.name in common_nodes_set]
+        common_nodes = [
+            node for node in circuits_to_compare[0].nodes if node.name in common_nodes_set
+        ]
 
         common_edges = []
-        edge_counts: Dict[Tuple[str, str]], int] = {}
+        edge_counts: dict[tuple[str, str], int] = {}
 
         for circuit in circuits_to_compare:
             for edge in circuit.edges:
@@ -385,7 +391,10 @@ class CircuitComparator:
         for (source, target), count in edge_counts.items():
             if count == len(circuits_to_compare):
                 strength = sum(
-                    next((e.strength for e in c.edges if e.source == source and e.target == target), 0.0)
+                    next(
+                        (e.strength for e in c.edges if e.source == source and e.target == target),
+                        0.0,
+                    )
                     for c in circuits_to_compare
                 ) / len(circuits_to_compare)
                 common_edges.append(CircuitEdge(source, target, strength))
@@ -455,7 +464,7 @@ class SubgraphAnalyzer:
                 expected = (ki * kj) / (2 * m)
                 modularity += edge.strength - expected
 
-        modularity /= (2 * m)
+        modularity /= 2 * m
         return float(modularity)
 
     @staticmethod
@@ -490,10 +499,13 @@ class SubgraphAnalyzer:
                     for neighbor in adj.get(node, []):
                         if neighbor in unassigned:
                             edge_strength = next(
-                                (e.strength for e in circuit.edges
-                                if (e.source == node and e.target == neighbor) or
-                                   (e.source == neighbor and e.target == node)),
-                                0.0
+                                (
+                                    e.strength
+                                    for e in circuit.edges
+                                    if (e.source == node and e.target == neighbor)
+                                    or (e.source == neighbor and e.target == node)
+                                ),
+                                0.0,
                             )
                             if edge_strength > 0.1:
                                 community.add(neighbor)
