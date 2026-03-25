@@ -1,6 +1,6 @@
 # World Model Lens
 
-**The definitive interpretability library for ANY world model.**
+**Observability & Replay Tooling for AI Safety & Interpretability Research**
 
 [![PyPI Version](https://img.shields.io/pypi/v/world-model-lens.svg)](https://pypi.org/project/world-model-lens/)
 [![Python Versions](https://img.shields.io/pypi/pyversions/world-model-lens.svg)](https://pypi.org/project/world-model-lens/)
@@ -8,7 +8,17 @@
 [![Tests](https://github.com/Bhavith-Chandra/WorldModelLens/workflows/CI/badge.svg)](https://github.com/Bhavith-Chandra/WorldModelLens/actions)
 [![Coverage](https://codecov.io/gh/Bhavith-Chandra/WorldModelLens/branch/main/graph/badge.svg)](https://codecov.io/gh/Bhavith-Chandra/WorldModelLens)
 
-World Model Lens provides a unified, backend-agnostic interface for analyzing, probing, and understanding world models. It works with any model that implements latent state + dynamics — no RL assumptions required.
+World Model Lens provides **observability** and **replay** tooling for analyzing, debugging, and understanding world models through the lens of AI safety & interpretability research.
+
+### Key Capabilities
+
+| Category | Capabilities |
+|----------|-------------|
+| **Observability** | Activation caching, saliency maps, surprise detection, belief tracking, uncertainty quantification |
+| **Replay** | Trajectory replay, intervention replay, imagination branching, counterfactual analysis |
+| **Causal Analysis** | Causal tracing, circuit discovery, path patching, bottleneck detection |
+| **Safety** | OOD detection, hallucination analysis, safety audits, robustness testing |
+| **Probing** | Linear probes, semantic probes (DINO/CLIP), concept discovery, disentanglement metrics |
 
 ---
 
@@ -32,32 +42,41 @@ World Model Lens provides a unified, backend-agnostic interface for analyzing, p
 
 ## Philosophy
 
-**World Model Lens is not just for RL agents.** It's designed to be:
+World Model Lens is designed as **observability infrastructure** for world model safety research:
 
-- **Backend-Agnostic**: Works with ANY world model architecture — RSSM, JEPA, transformers, video prediction, etc.
-- **Minimal Interface**: Only core methods are required; RL-specific features are optional
-- **Extensible**: Add new models by implementing a thin adapter
-- **Non-RL First-Class**: Video prediction, planning, and scientific simulation models are treated as first-class citizens
+- **Observability First**: Every activation is observable, every decision is traceable
+- **Replay Everything**: Replay trajectories with interventions, counterfactuals, and what-if analysis
+- **Safety-Centric**: Built-in tools for OOD detection, hallucination analysis, and safety auditing
+- **Backend-Agnostic**: Works with ANY world model — RSSM, JEPA, transformers, video prediction, etc.
+- **Minimal Interface**: Only `encode()` and `dynamics()` are required; RL-specific features are optional
 
 ---
 
 ## Why World Model Lens?
 
-Inspired by [TransformerLens](https://github.com/neelnanda-io/TransformerLens) for language models, World Model Lens brings the same level of interpretability tooling to world models — but **without assuming reinforcement learning**.
+World Model Lens provides **production-grade observability** for world model research:
+
+| Use Case | What You Can Do |
+|----------|-----------------|
+| **Debugging** | Replay failed trajectories, trace error propagation, find bottlenecks |
+| **Safety Auditing** | Detect OOD states, hallucinations, belief instability |
+| **Mechanistic Understanding** | Causal tracing, circuit discovery, probe for concepts |
+| **Benchmarking** | Standardized metrics for disentanglement, probing, causal effects |
+| **Research** | Novel MI techniques: SAEs, cross-modal probing, uncertainty estimation |
 
 Whether you're working on:
 
 | Domain | Examples |
 |--------|----------|
+| **AI Safety** | Reward hacking detection, goal misgeneralization |
 | **Reinforcement Learning** | DreamerV3, TD-MPC2, IRIS agents |
 | **Video Prediction** | WorldDreamer, video generation models |
 | **Planning & Control** | MPC, trajectory optimization |
 | **Robotics** | Manipulation, locomotion, navigation |
 | **Autonomous Driving** | Camera/LiDAR fusion world models |
 | **Scientific Simulation** | Physics, chemistry, climate modeling |
-| **Your Custom Model** | Any latent dynamics model |
 
-World Model Lens provides the interpretability tools you need.
+World Model Lens provides the observability tools you need.
 
 ---
 
@@ -139,7 +158,7 @@ config = WorldModelConfig(d_obs=128, d_state=64)
 model = MyWorldModel(config)
 ```
 
-### 2. Wrap and Analyze
+### 2. Observe (Activation Caching)
 
 ```python
 from world_model_lens import HookedWorldModel
@@ -148,31 +167,48 @@ import torch
 # Wrap with hooks and caching
 wm = HookedWorldModel(adapter=model, config=config)
 
-# Run forward pass with activation caching
+# Run forward pass - ALL activations are cached
 observations = torch.randn(10, 128)  # 10 timesteps
 traj, cache = wm.run_with_cache(observations=observations)
 
-# Imagine future trajectories
-imagined = wm.imagine(start_state=traj.states[0], horizon=20)
+# Inspect any activation at any timestep
+h_t = cache["h", 5]  # hidden state at timestep 5
+z_t = cache["z_posterior", 5]  # latent at timestep 5
 ```
 
-### 3. Use Interpretability Tools
+### 3. Replay & Debug
 
 ```python
-# Linear probing for concepts
-from world_model_lens.probing import LatentProber
-prober = LatentProber(wm)
-probe_results = prober.train_probe(concept="velocity", trajectories=[traj])
+# Replay a specific trajectory
+from world_model_lens.branching import ImaginationBrancher
 
-# Activation patching
-from world_model_lens.patching import TemporalPatcher
-patcher = TemporalPatcher(wm)
-results = patcher.full_sweep(traj)
+brancer = ImaginationBrancher(wm)
+branch = brancer.create_branch(traj, branch_point=5)
 
-# Safety analysis
-from world_model_lens.safety import SafetyAnalyzer
-analyzer = SafetyAnalyzer(wm)
-safety_report = analyzer.run_safety_audit(traj)
+# What if we took a different action?
+forked = branch.fork()
+different_traj = wm.imagine(forked.initial_state, horizon=10, actions=new_actions)
+
+# Compare original vs counterfactual
+compare(traj, different_traj)
+```
+
+### 4. Safety Audit
+
+```python
+# Run safety checks on observed behavior
+from world_model_lens.analysis import BeliefAnalyzer
+
+analyzer = BeliefAnalyzer(wm)
+
+# Detect surprise (belief updates)
+surprise = analyzer.surprise_timeline(cache)
+
+# Check for hallucinations
+hallucination = analyzer.hallucination_detection(traj, imagined_traj)
+
+# OOD detection
+ood_scores = analyzer.ood_detection(cache)
 ```
 
 ---
@@ -229,64 +265,57 @@ wm.run_with_hooks(observations, fwd_hooks=[("block.hook_resid_post", hook_fn)])
 
 ## Features
 
-### Probing
+### 🔍 Observability
 
 | Feature | Description |
 |---------|-------------|
-| **Linear Probing** | Train probes on latent representations |
-| **Ridge/Logistic Regression** | Regularized probing with CV hyperparameter tuning |
-| **Cross-Modal Probing** | Probe across observation modalities (vision, text) |
+| **Activation Caching** | Capture all intermediate activations during forward pass |
+| **Hook System** | Intercept and modify forward passes at any layer |
+| **Saliency Maps** | Gradient, occlusion, integrated gradients |
+| **Surprise Detection** | KL divergence timeline for belief updates |
+| **Uncertainty Quantification** | Epistemic & aleatoric uncertainty in latent space |
+
+### 🎬 Replay
+
+| Feature | Description |
+|---------|-------------|
+| **Trajectory Replay** | Replay stored trajectories with full state inspection |
+| **Intervention Replay** | Replay with modified activations (patching) |
+| **Imagination Branching** | Fork trajectories for "what-if" exploration |
+| **Counterfactual Analysis** | "What if this state/action were different?" |
+| **Temporal Debugging** | Step-by-step replay with intervention points |
+
+### 🔬 Safety & Auditing
+
+| Feature | Description |
+|---------|-------------|
+| **OOD Detection** | Identify out-of-distribution latent states |
+| **Hallucination Analysis** | Detect when model predictions diverge from reality |
+| **Belief Instability** | Track sudden belief shifts (surprise peaks) |
+| **Safety Audit** | Comprehensive safety checks for deployed models |
+| **Robustness Testing** | Adversarial perturbation analysis |
+
+### 🧠 Interpretability
+
+| Feature | Description |
+|---------|-------------|
+| **Linear Probing** | Train probes to decode concepts from latents |
 | **Semantic Probes (DINO/CLIP)** | Vision-language concept alignment |
-| **Temporal Memory** | Analyze memory retention over time |
-| **Geometry Analysis** | PCA, clustering, manifold analysis |
-| **Concept Discovery** | Find semantic concepts in latent space |
-
-### Patching & Causal Analysis
-
-| Feature | Description |
-|---------|-------------|
-| **Activation Patching** | Replace activations during forward pass |
-| **Causal Tracing** | Trace causal pathways through the model |
-| **Dimensional Patching** | Test individual latent dimensions |
 | **Circuit Discovery** | Find important computation subgraphs |
-| **Circuit Comparison** | Compare circuits across models/trained variants |
+| **Causal Tracing** | Trace causal pathways through the model |
+| **Sparse Autoencoders** | Train SAEs for disentangled feature discovery |
+| **Disentanglement Metrics** | MIG, DCI, SAP scores |
 
-### Sparse Autoencoders
-
-| Feature | Description |
-|---------|-------------|
-| **SAE Training** | Train TopK ReLU sparse autoencoders |
-| **Feature Attribution** | Identify disentangled latent features |
-| **L0/Reconstruction Metrics** | Evaluate sparsity-quality tradeoff |
-
-### Benchmarks
+### 📊 Benchmarks & Metrics
 
 | Feature | Description |
 |---------|-------------|
 | **Probing Benchmarks** | Standard concept classification tasks |
-| **Latent Metrics** | MIG, DCI, SAP disentanglement scores |
+| **Latent Metrics** | MIG, DCI, SAP, SAP-Score |
 | **Causal Benchmarks** | Path patching evaluation |
 | **CartPole/Continuous Control** | RL benchmark environments |
 
-### Branching
-
-| Feature | Description |
-|---------|-------------|
-| **Imagination Branching** | Fork trajectories for comparison |
-| **Counterfactual Analysis** | "What if" scenario exploration |
-
-### Safety & Analysis
-
-| Feature | Description |
-|---------|-------------|
-| **Safety Audit** | Detect OOD states, instabilities |
-| **Belief Analysis** | Surprise, entropy, hallucination detection |
-| **Saliency Maps** | Gradient, occlusion, integrated gradients |
-| **Disentanglement Metrics** | MIG, DCI, SAP scores |
-| **Uncertainty Quantification** | Epistemic/aleatoric uncertainty in beliefs |
-| **Robustness Testing** | Adversarial perturbation analysis |
-
-### Production Tools
+### 🛠 Production Tools
 
 | Feature | Description |
 |---------|-------------|
@@ -506,6 +535,53 @@ class MyAdapter(WorldModelAdapter):
 ---
 
 ## Examples
+
+### Observability + Replay Workflow
+
+This example demonstrates the full **observe → replay → debug** cycle:
+
+```python
+import torch
+from world_model_lens import HookedWorldModel, WorldModelConfig
+from world_model_lens.backends.toy_video_model import create_toy_video_adapter
+
+# 1. OBSERVE: Run model with full activation caching
+adapter = create_toy_video_adapter(latent_dim=64)
+config = WorldModelConfig(d_obs=32*32*3, d_action=4, d_h=64)
+wm = HookedWorldModel(adapter=adapter, config=config)
+
+obs = torch.randn(50, 3, 32, 32)  # 50 frame video
+actions = torch.randint(0, 4, (50, 4))
+traj, cache = wm.run_with_cache(obs, actions)
+
+# 2. INSPECT: Look at any activation, any timestep
+print(f"Hidden states shape: {cache['h'].shape}")  # [50, 64]
+print(f"Latents shape: {cache['z_posterior'].shape}")  # [50, 64]
+
+# 3. SAFETY CHECK: Detect anomalies
+from world_model_lens.analysis import BeliefAnalyzer
+analyzer = BeliefAnalyzer(wm)
+surprise = analyzer.surprise_timeline(cache)
+print(f"Max surprise at timestep: {surprise.max_surprise_timestep}")
+
+# 4. REPLAY WITH INTERVENTION: Patch at specific point
+from world_model_lens.patching import TemporalPatcher
+patcher = TemporalPatcher(wm)
+
+# What if we intervene at the surprising point?
+def intervene(cache):
+    patched = cache.clone()
+    patched["h", surprise.max_surprise_timestep] = cache["h", 0]  # reset
+    return patched
+
+result = patcher.patch_path(cache, intervene)
+print(f"Intervention effect: {result.effect}")
+
+# 5. IMAGINATION: Replay forward from new state
+new_state = traj.states[surprise.max_surprise_timestep]
+imagined = wm.imagine(start_state=new_state, horizon=20)
+print(f"Imagined {imagined.length} steps into future")
+```
 
 ### Video Prediction Analysis
 
