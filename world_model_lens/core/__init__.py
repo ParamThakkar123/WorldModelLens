@@ -36,6 +36,7 @@ from world_model_lens.core.world_trajectory import (
 from world_model_lens.core.config import WorldModelConfig
 from world_model_lens.core.hooks import HookPoint, HookContext, HookRegistry
 from world_model_lens.core.activation_cache import ActivationCache
+from world_model_lens.core.cache_query import CacheQuery
 from world_model_lens.core.latent_trajectory import LatentTrajectory
 from world_model_lens.core.lazy_trajectory import (
     LatentTrajectoryLite,
@@ -71,4 +72,5 @@ __all__ = [
     "ModelPurpose",
     "WorldModelFamily",
     "ObservationModality",
+    "CacheQuery",
 ]

@@ -386,7 +386,9 @@ def generate_pendulum_trajectory(
 
     trajectory = []
     for _ in range(n_steps):
-        alpha = -(g / L) * torch.sin(torch.tensor(theta)) - damping * omega
+        # Use as_tensor to avoid creating a new tensor when `theta` is already
+        # a torch.Tensor (prevents a copy-construction warning).
+        alpha = -(g / L) * torch.sin(torch.as_tensor(theta)) - damping * omega
         omega += alpha * dt
         theta += omega * dt
 

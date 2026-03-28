@@ -193,6 +193,117 @@ class ActivationCache:
         except KeyError:
             raise KeyError("Cache must contain z_posterior and z_prior for surprise()")
 
+    def stacked(self, name: str) -> torch.Tensor:
+        """Explicitly return all timesteps for `name` stacked along dim=0.
+
+        This is equivalent to accessing `cache[name]` or `cache[name, ':']` but
+        provides a more discoverable API.
+        """
+        return self._get_all(name)
+
+    def diff(
+        self, other: "ActivationCache", names: Optional[List[str]] = None, absolute: bool = True
+    ) -> "ActivationCache":
+        """Compute per-key tensor differences between this cache and `other`.
+
+        For any (component, timestep) present in both caches the result will
+        contain `self - other` (or absolute difference when `absolute=True`).
+
+        Args:
+            other: Other ActivationCache to compare against.
+            names: Optional list of component names to restrict comparison.
+            absolute: If True, store the absolute difference.
+
+        Returns:
+            ActivationCache containing difference tensors for matching keys.
+        """
+        new_cache = ActivationCache()
+        if names is None:
+            names = sorted(set(self.component_names) & set(other.component_names))
+
+        for name in names:
+            # get sorted timesteps present in both
+            timesteps = sorted(
+                set(t for n, t in self._store.keys() if n == name)
+                & set(t for n, t in other._store.keys() if n == name)
+            )
+            for t in timesteps:
+                a = self._get_single(name, t)
+                b = other._get_single(name, t)
+                diff = a - b
+                if absolute:
+                    diff = diff.abs()
+                # store concrete tensor
+                new_cache._store[(name, t)] = diff
+
+        return new_cache
+
+    def temporal_variability(self, name: str, p: float = 2.0) -> torch.Tensor:
+        """Compute normed differences between consecutive timesteps for `name`.
+
+        Returns a tensor of shape [T-1] where each entry is the p-norm of the
+        difference between timestep t and t-1. Index i corresponds to change
+        from timestep i to i+1 in the stacked ordering.
+        """
+        seq = self._get_all(name)  # [T, ...]
+        if seq.shape[0] < 2:
+            return torch.tensor([])
+        diffs = seq[1:] - seq[:-1]
+        flat = diffs.reshape(diffs.shape[0], -1)
+        return torch.norm(flat, p=p, dim=1)
+
+    def most_variable_timesteps(self, name: str, top_k: int = 5) -> List[int]:
+        """Return the timesteps with the largest temporal changes for `name`.
+
+        The returned timesteps correspond to the later timestep of each change
+        (i.e. change between t-1 and t is reported as t). If `top_k` is larger
+        than available changes, all candidate timesteps are returned.
+        """
+        vari = self.temporal_variability(name)
+        if vari.numel() == 0:
+            return []
+        k = min(top_k, vari.numel())
+        vals, idx = torch.topk(vari, k)
+        # map indices (0..T-2) to actual timestep numbers (use stored timesteps)
+        timesteps = sorted(set(t for n, t in self._store.keys() if n == name))
+        result = [timesteps[i + 1] for i in idx.tolist()]
+        return result
+
+    def timesteps_exceeding_surprise(self, threshold: float) -> List[int]:
+        """Return timesteps where surprise() exceeds `threshold`.
+
+        Uses the same ordering as `surprise()` / `stacked('z_posterior')`.
+        """
+        kl = self.surprise()
+        timesteps = sorted(
+            set(t for _, t in self._store.keys() if _ == "z_posterior" or _ == "z_prior")
+        )
+        # surprise() raises if z_prior/posterior missing; map indices to sorted timesteps
+        exceed_idx = (kl > threshold).nonzero(as_tuple=True)[0].tolist()
+        return [timesteps[i] for i in exceed_idx]
+
+    def compare_summary(
+        self, other: "ActivationCache", names: Optional[List[str]] = None, p: float = 2.0
+    ) -> pd.DataFrame:
+        """Produce a DataFrame summarizing normed differences per (component,timestep).
+
+        Columns: component, timestep, diff_norm
+        """
+        rows = []
+        if names is None:
+            names = sorted(set(self.component_names) & set(other.component_names))
+        for name in names:
+            timesteps = sorted(
+                set(t for n, t in self._store.keys() if n == name)
+                & set(t for n, t in other._store.keys() if n == name)
+            )
+            for t in timesteps:
+                a = self._get_single(name, t)
+                b = other._get_single(name, t)
+                diff = (a - b).reshape(-1).norm(p=p).item()
+                rows.append({"component": name, "timestep": t, "diff_norm": diff})
+        return pd.DataFrame(rows)
+
     def to_dataframe(self) -> pd.DataFrame:
         """Export cache to a pandas DataFrame.
 
@@ -255,3 +366,6 @@ class ActivationCache:
                 estimated_size = 4 * 1024 * 1024
                 total_bytes += estimated_size
         return total_bytes / (1024**3)
+
+
+from .cache_query import CacheQuery  # re-export for backward compatibility
