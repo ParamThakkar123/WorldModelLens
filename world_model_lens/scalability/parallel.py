@@ -6,13 +6,18 @@ import multiprocessing as mp
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union, Iterator
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union, Iterator, TYPE_CHECKING
 import numpy as np
 import torch
 from tqdm import tqdm
 
 from world_model_lens.core.activation_cache import ActivationCache
 from world_model_lens.core.lazy_trajectory import TrajectoryDataset, LatentTrajectoryLite
+
+if TYPE_CHECKING:
+    from world_model_lens.hooked_world_model import HookedWorldModel
+    from world_model_lens.patching.patcher import PatchingSweepResult, PatchResult
+    from world_model_lens.patching.patcher import TemporalPatcher
 
 
 def run_with_cache_parallel(
@@ -59,6 +64,7 @@ def run_with_cache_parallel(
                 wm_factory,
                 device,
                 names_filter,
+                dataset,
             )
             futures.append(future)
 
@@ -74,6 +80,7 @@ def _worker_process_chunk(
     wm_factory: Callable[[], "HookedWorldModel"],
     device: torch.device,
     names_filter: Optional[List[str]],
+    dataset: TrajectoryDataset,
 ) -> List[Tuple[ActivationCache, int]]:
     """Process a chunk of trajectories in a worker."""
     wm = wm_factory()
@@ -189,7 +196,8 @@ def _worker_patching_chunk(
 ) -> Dict[Tuple[str, int], "PatchResult"]:
     """Process a chunk of patching tasks."""
     results = {}
-    for comp, t in tqdm(tasks, desc=f"Patching {comp}"):
+    # Use a static description for the progress bar; per-item names aren't available
+    for comp, t in tqdm(tasks, desc="Patching chunk"):
         result = patcher.patch_state(
             config.clean_cache,
             config.corrupted_cache,
@@ -290,7 +298,7 @@ class GradientCheckpointedModel:
     ) -> Dict[str, torch.Tensor]:
         """Compute saliency with gradient checkpointing."""
         self.wm.adapter.train()
-        obs.requires_grad_(True)
+        observations.requires_grad_(True)
 
         if method == "grad":
             output = self.wm.run_with_cache(observations)[0]

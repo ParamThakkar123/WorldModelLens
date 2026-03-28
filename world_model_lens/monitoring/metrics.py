@@ -11,6 +11,7 @@ import threading
 
 try:
     from prometheus_client import Counter, Gauge, Histogram, Summary, generate_latest
+    from prometheus_client import CollectorRegistry
 
     PROMETHUES_AVAILABLE = True
 except ImportError:
@@ -32,7 +33,12 @@ class MetricSnapshot:
 
 
 class MetricsCollector:
-    """Collects and exports Prometheus metrics."""
+    """Collects and exports Prometheus metrics.
+
+    Note: each MetricsCollector instance uses its own Prometheus
+    CollectorRegistry. This prevents duplicate metric registration when
+    multiple instances (or tests) create collectors in the same process.
+    """
 
     def __init__(self) -> None:
         if not PROMETHUES_AVAILABLE:
@@ -41,11 +47,15 @@ class MetricsCollector:
 
         self._available = True
         self._lock = threading.Lock()
+        # Use a dedicated registry per collector instance to avoid global
+        # duplicate metric registration when tests or multiple instances run.
+        self._registry = CollectorRegistry()
 
         self.analysis_count = Counter(
             "wml_analysis_total",
             "Total number of analyses",
             ["analysis_type", "status"],
+            registry=self._registry,
         )
 
         self.analysis_duration = Histogram(
@@ -53,41 +63,48 @@ class MetricsCollector:
             "Analysis duration in seconds",
             ["analysis_type"],
             buckets=(0.1, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0, 60.0, 120.0),
+            registry=self._registry,
         )
 
         self.memory_usage = Gauge(
             "wml_memory_usage_bytes",
             "Memory usage in bytes",
             ["type"],
+            registry=self._registry,
         )
 
         self.gpu_memory_usage = Gauge(
             "wml_gpu_memory_usage_bytes",
             "GPU memory usage in bytes",
             ["device_id"],
+            registry=self._registry,
         )
 
         self.active_analyses = Gauge(
             "wml_active_analyses",
             "Number of active analyses",
+            registry=self._registry,
         )
 
         self.cache_hits = Counter(
             "wml_cache_hits_total",
             "Cache hit count",
             ["cache_name"],
+            registry=self._registry,
         )
 
         self.cache_misses = Counter(
             "wml_cache_misses_total",
             "Cache miss count",
             ["cache_name"],
+            registry=self._registry,
         )
 
         self.request_count = Counter(
             "wml_requests_total",
             "Total API requests",
             ["endpoint", "method", "status"],
+            registry=self._registry,
         )
 
         self.request_duration = Histogram(
@@ -95,12 +112,14 @@ class MetricsCollector:
             "Request duration in seconds",
             ["endpoint"],
             buckets=(0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0),
+            registry=self._registry,
         )
 
         self.probe_accuracy = Gauge(
             "wml_probe_accuracy",
             "Probe accuracy score",
             ["concept", "task"],
+            registry=self._registry,
         )
 
         self.trajectory_length = Histogram(
@@ -108,6 +127,7 @@ class MetricsCollector:
             "Trajectory length in timesteps",
             ["source"],
             buckets=(10, 50, 100, 500, 1000, 5000, 10000),
+            registry=self._registry,
         )
 
     def record_analysis(
@@ -178,7 +198,7 @@ class MetricsCollector:
         if not PROMETHUES_AVAILABLE:
             return "# Metrics not available"
 
-        return generate_latest().decode("utf-8")
+        return generate_latest(self._registry).decode("utf-8")
 
     def start(self) -> None:
         """Start background metric collection."""
