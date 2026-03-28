@@ -41,6 +41,10 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - run: pip install -e ".[dev]"
+      - name: Install PyTorch (CPU wheels)
+        run: |
+          pip install --upgrade pip
+          pip install --index-url https://download.pytorch.org/whl/cpu torch torchvision torchaudio
       - run: pytest tests/ -v --cov=world_model_lens --cov-report=xml --cov-fail-under=90
       - uses: codecov/codecov-action@v4
         with:
