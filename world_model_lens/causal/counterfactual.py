@@ -155,8 +155,14 @@ def rollout_comparison(
     final_dist = torch.nn.functional.mse_loss(final_orig, final_cf).item()
 
     # Reward difference
-    orig_rewards = [s.predictions.get("reward", torch.tensor(0.0)) for s in original.states]
-    cf_rewards = [s.predictions.get("reward", torch.tensor(0.0)) for s in counterfactual.states]
+    def _reward_t(s: Any) -> torch.Tensor:
+        r = s.reward if getattr(s, "reward", None) is not None else getattr(s, "reward_pred", None)
+        if r is None and hasattr(s, "predictions") and s.predictions:
+            r = s.predictions.get("reward")
+        return r if r is not None else torch.tensor(0.0)
+
+    orig_rewards = [_reward_t(s) for s in original.states]
+    cf_rewards = [_reward_t(s) for s in counterfactual.states]
 
     orig_sum = sum(r.item() if isinstance(r, torch.Tensor) else r for r in orig_rewards)
     cf_sum = sum(r.item() if isinstance(r, torch.Tensor) else r for r in cf_rewards)
@@ -419,7 +425,14 @@ class CounterfactualEngine:
     def _extract_outcome(self, trajectory: Any, metric: str) -> float:
         """Extract outcome metric from trajectory."""
         if metric == "reward_pred":
-            rewards = [s.predictions.get("reward", torch.tensor(0.0)) for s in trajectory.states]
+            rewards = []
+            for s in trajectory.states:
+                r = s.reward if getattr(s, "reward", None) is not None else getattr(
+                    s, "reward_pred", None
+                )
+                if r is None and hasattr(s, "predictions") and s.predictions:
+                    r = s.predictions.get("reward")
+                rewards.append(r if r is not None else torch.tensor(0.0))
             return sum(r.item() if isinstance(r, torch.Tensor) else r for r in rewards)
         elif metric == "final_state_norm":
             return trajectory.states[-1].state.norm().item()
