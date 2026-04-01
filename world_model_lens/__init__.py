@@ -62,6 +62,16 @@ from world_model_lens.core.types import (
 )
 from world_model_lens.hooked_world_model import HookedWorldModel
 from world_model_lens.probing import LatentProber
+from world_model_lens.envs import (
+    EnvironmentAdapter,
+    EnvironmentFactory,
+    FACTORY,
+    create,
+    GymnasiumAdapter,
+    GymnasiumCapabilities,
+    EnvSpec,
+    EnvStepResult,
+)
 
 __all__ = [
     "__version__",
@@ -99,4 +109,13 @@ __all__ = [
     "VideoWorldModelAdapter",
     "AutonomousDrivingAdapter",
     "RoboticsAdapter",
+    # Environment adapters
+    "EnvironmentAdapter",
+    "EnvironmentFactory",
+    "FACTORY",
+    "create",
+    "GymnasiumAdapter",
+    "GymnasiumCapabilities",
+    "EnvSpec",
+    "EnvStepResult",
 ]
