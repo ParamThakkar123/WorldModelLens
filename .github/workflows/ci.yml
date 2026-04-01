@@ -66,20 +66,13 @@ jobs:
       - name: Install dependencies
         run: |
           set -eux
-
           python -m pip install --upgrade pip
-
-          # Install PyTorch CPU build FIRST (critical)
-          python -m pip install \
-            --index-url https://download.pytorch.org/whl/cpu \
-            --extra-index-url https://pypi.org/simple \
-            torch
-
-          # Install project (reuses torch)
-          python -m pip install -e ".[dev]"
-
-          # Sanity check
-          python -c "import torch; print('Torch:', torch.__version__)"
+          pip install torch --extra-index-url https://download.pytorch.org/whl/cpu
+          python -c "import torch; print('Torch OK:', torch.__version__)"
+          # Install your package AFTER torch
+          pip install -e ".[dev]"
+          # Extra debug (optional but useful)
+          pip list | grep torch || true
 
       - name: Run tests
         run: |
@@ -105,14 +98,14 @@ jobs:
 
       - name: Install dependencies (GPU)
         run: |
+          set -eux
+
           python -m pip install --upgrade pip
 
-          # Let pip resolve GPU torch (assuming CUDA env present)
           pip install torch
+          python -c "import torch; print('CUDA:', torch.cuda.is_available())"
 
           pip install -e ".[dev]"
-
-          python -c "import torch; print('CUDA available:', torch.cuda.is_available())"
 
       - run: pytest tests/ -v --gpu
 
