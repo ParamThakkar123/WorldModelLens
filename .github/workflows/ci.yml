@@ -69,10 +69,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install torch --extra-index-url https://download.pytorch.org/whl/cpu
           python -c "import torch; print('Torch OK:', torch.__version__)"
-          # Install your package AFTER torch
           pip install -e ".[dev]"
-          # Extra debug (optional but useful)
-          pip list | grep torch || true
 
       - name: Run tests
         run: |
