@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(grep -E \"\\\\.\\(rst|md|txt\\)$\")"
+      "Bash(grep -E \"\\\\.\\(rst|md|txt\\)$\")",
+      "WebFetch(domain:worldmodellens.readthedocs.io)"
     ]
   }
 }

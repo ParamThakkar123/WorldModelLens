@@ -9,6 +9,22 @@ ROOT = os.path.abspath("..")
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
+autodoc_mock_imports = [
+    "torch",
+    "numpy",
+    "gymnasium",
+    "einops",
+    "plotly",
+    "scipy",
+    "sklearn",
+    "pandas",
+    "tqdm",
+    "rich",
+    "yaml",
+    "typer",
+    "huggingface_hub",
+]
+
 project = "World Model Lens"
 author = "World Model Lens Team"
 copyright = "2023, World Model Lens Team"
@@ -52,7 +68,7 @@ html_theme_options = {
 html_context = {
     "github_user": "Bhavith-Chandra",
     "github_repo": "WorldModelLens",
-    "github_version": "main",
+    "github_version": "master",
     "doc_path": "docs",
 }
 
