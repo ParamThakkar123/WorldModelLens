@@ -6,4 +6,7 @@
 core
 backends
 analysis
+probing
+causal
+cli
 ```

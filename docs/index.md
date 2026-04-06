@@ -6,8 +6,10 @@ Backend-agnostic interpretability and observability for world models.
 :maxdepth: 2
 :caption: Documentation
 
+introduction
 getting-started
 installation
+examples
 glossary
 api/index
 ```
