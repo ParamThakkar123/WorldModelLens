@@ -35,7 +35,7 @@ def main():
         traj, cache = wm.run_with_cache(obs_seq, action_seq)
 
         z_posterior = cache["z_posterior"]
-        z_flat = z_posterior.flatten(1, 2)
+        z_flat = z_posterior.flatten(1) if z_posterior.dim() > 2 else z_posterior
         all_activations.append(z_flat)
 
         labels = np.random.randint(0, 3, size=len(z_flat))
