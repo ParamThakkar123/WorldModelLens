@@ -6,7 +6,7 @@ This module provides analyzers that work with ANY world model type:
 """
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional
 
 import torch
 
@@ -85,7 +85,7 @@ class SaliencyResult:
     """Result of saliency analysis."""
 
     h_saliency: torch.Tensor
-    z_saliency: torch.Tensor | None
+    z_saliency: Optional[torch.Tensor]
     method: str
     timestep: int
 
@@ -220,8 +220,8 @@ class BeliefAnalyzer:
     def surprise_timeline(
         self,
         cache: "ActivationCache",
-        obs_seq: torch.Tensor | None = None,
-        decoder: Any | None = None,
+        obs_seq: Optional[torch.Tensor] = None,
+        decoder: Optional[Any] = None,
     ) -> SurpriseResult:
         """Compute surprise (KL divergence) timeline.
 
@@ -350,7 +350,7 @@ class BeliefAnalyzer:
         timestep: int,
         target: str = "state",
         method: str = "gradient",
-        target_class: int | None = None,
+        target_class: Optional[int] = None,
     ) -> SaliencyResult:
         """Compute saliency maps for latent representations.
 
@@ -473,7 +473,7 @@ class BeliefAnalyzer:
         self,
         real_traj: "LatentTrajectory",
         imagined_traj: "LatentTrajectory",
-        decoder: Any | None = None,
+        decoder: Optional[Any] = None,
         method: str = "latent_distance",
         threshold: float = 0.5,
     ) -> HallucinationResult:
@@ -529,8 +529,8 @@ class BeliefAnalyzer:
     def disentanglement_score(
         self,
         cache: "ActivationCache",
-        factors: dict[str, torch.Tensor] | None = None,
-        metrics: list[str] | None = None,
+        factors: Optional[dict[str, torch.Tensor]] = None,
+        metrics: Optional[list[str]] = None,
         component: str = "z_posterior",
     ) -> DisentanglementResult:
         """Compute disentanglement metrics.
