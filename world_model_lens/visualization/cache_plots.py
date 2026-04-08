@@ -1,11 +1,12 @@
+from typing import Any, Dict
+
 import numpy as np
 import torch
-from typing import Any, Dict
 
 
 class CacheSignalPlotter:
     """Plotters for arbitrary signals extracted from ActivationCache.
-    
+
     Examples:
         plotter = CacheSignalPlotter()
         data = plotter.plot_surprise_timeline(cache)
@@ -26,14 +27,21 @@ class CacheSignalPlotter:
             try:
                 surprises = cache.surprise()
                 timesteps = np.array(sorted(surprises.keys()))
-                kl_values = np.array([surprises[t].item() if isinstance(surprises[t], torch.Tensor) else float(surprises[t]) for t in timesteps])
+                kl_values = np.array(
+                    [
+                        surprises[t].item()
+                        if isinstance(surprises[t], torch.Tensor)
+                        else float(surprises[t])
+                        for t in timesteps
+                    ]
+                )
                 return {"timesteps": timesteps, "kl_values": kl_values}
             except KeyError:
                 pass
-        
+
         # Fallback if surprise() fails or not present, but we have "kl" keys
-        timesteps = sorted([t for (n, t) in cache.keys() if n == 'kl'])
-        kl_values = np.array([cache.get('kl', t).item() for t in timesteps])
+        timesteps = sorted([t for (n, t) in cache.keys() if n == "kl"])
+        kl_values = np.array([cache.get("kl", t).item() for t in timesteps])
         return {"timesteps": np.array(timesteps), "kl_values": kl_values}
 
     @staticmethod
@@ -53,15 +61,19 @@ class CacheSignalPlotter:
         for i, state in enumerate(trajectory.states):
             timesteps.append(i)
             r_pred = state.reward_pred
-            r_real = state.reward_real
+            r_real = state.reward
 
             if r_pred is not None:
-                predicted.append(float(r_pred) if not isinstance(r_pred, torch.Tensor) else r_pred.item())
+                predicted.append(
+                    float(r_pred) if not isinstance(r_pred, torch.Tensor) else r_pred.item()
+                )
             else:
                 predicted.append(0.0)
-            
+
             if r_real is not None:
-                actual.append(float(r_real) if not isinstance(r_real, torch.Tensor) else r_real.item())
+                actual.append(
+                    float(r_real) if not isinstance(r_real, torch.Tensor) else r_real.item()
+                )
             else:
                 actual.append(0.0)
 
