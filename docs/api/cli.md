@@ -1,4 +1,4 @@
-# CLI Reference
+# CLI API
 
 The `wml` command-line interface provides quick access to analysis and inspection tools.
 
