@@ -150,7 +150,7 @@ jobs:
       - name: Deploy PR preview
         uses: rossjrw/pr-preview-action@v1
         with:
-          source-dir: docs/_build
+          source-dir: docs/_build/html
           preview-branch: gh-pages
     runs-on: ubuntu-latest
     steps:
