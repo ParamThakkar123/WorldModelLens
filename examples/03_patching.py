@@ -15,6 +15,7 @@ import torch
 import matplotlib.pyplot as plt
 
 OUTPUT_DIR = pathlib.Path("assets/examples")
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 from world_model_lens import HookContext, HookedWorldModel, HookPoint, WorldModelConfig
 from world_model_lens.backends.dreamerv3 import DreamerV3Adapter

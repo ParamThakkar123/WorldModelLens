@@ -19,6 +19,7 @@ from world_model_lens.backends.dreamerv3 import DreamerV3Adapter
 from world_model_lens.visualization import CacheSignalPlotter
 
 OUTPUT_DIR = pathlib.Path("assets/examples")
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def main():

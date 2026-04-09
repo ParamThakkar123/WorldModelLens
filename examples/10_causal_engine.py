@@ -21,6 +21,7 @@ from world_model_lens.causal import (
 from world_model_lens.visualization import CacheSignalPlotter, InterventionVisualizer
 
 OUTPUT_DIR = pathlib.Path("assets/examples")
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def main():
