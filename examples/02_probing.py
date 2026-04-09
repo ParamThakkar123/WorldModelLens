@@ -5,13 +5,25 @@ This example demonstrates:
 2. Creating synthetic labels for concepts
 3. Training linear probes
 4. Analyzing probe results
+5. Visualizing latent structure
 """
+
+import pathlib
+
+import pathlib
 
 import numpy as np
 import torch
+import matplotlib.pyplot as plt
+
+OUTPUT_DIR = pathlib.Path("assets/examples")
+
+OUTPUT_DIR = pathlib.Path(__file__).parent.parent / "assets" / "examples"
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 from world_model_lens import HookedWorldModel, LatentProber, WorldModelConfig
 from world_model_lens.backends.dreamerv3 import DreamerV3Adapter
+from world_model_lens.visualization import CacheSignalPlotter
 
 
 def main():
@@ -66,6 +78,67 @@ def main():
     print("\n[3] Probe Results:")
     for key, result in sweep_result.results.items():
         print(f"    {key}: accuracy={result.accuracy:.3f}")
+
+    print("\n[4] Building visualization dashboard...")
+
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    fig.suptitle("WorldModelLens - Linear Probing Dashboard", fontsize=14)
+
+    # 1. PCA of collected activations
+    acts_centered = activations - activations.mean(0)
+    _, _, Vt = torch.pca_lowrank(acts_centered, q=2)
+    pca_proj = (acts_centered @ Vt).detach().numpy()
+
+    ax = axes[0, 0]
+    sc = ax.scatter(pca_proj[:, 0], pca_proj[:, 1], c=labels, cmap="tab10", s=8, alpha=0.7)
+    plt.colorbar(sc, ax=ax, label="Label (0=reward, 1=novel, 2=value)")
+    ax.set_xlabel("PC1")
+    ax.set_ylabel("PC2")
+    ax.set_title("z_posterior PCA (colored by concept label)")
+
+    # 2. Probe accuracy per concept
+    ax = axes[0, 1]
+    concept_names = list(concepts.keys())
+    accuracies = [
+        sweep_result.results.get(f"{c}_z_posterior", None) for c in concept_names
+    ]
+    acc_vals = [r.accuracy if r is not None else 0.0 for r in accuracies]
+    bars = ax.bar(concept_names, acc_vals, color="steelblue")
+    ax.set_ylim(0, 1)
+    ax.set_ylabel("Accuracy")
+    ax.set_title("Probe Accuracy per Concept")
+    ax.axhline(0.5, color="red", linestyle="--", linewidth=1, label="Chance (0.5)")
+    ax.legend(fontsize=8)
+    for bar, acc in zip(bars, acc_vals):
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            bar.get_height() + 0.01,
+            f"{acc:.3f}",
+            ha="center",
+            va="bottom",
+            fontsize=9,
+        )
+
+    # 3. Hidden state norm timeline for last run
+    ax = axes[1, 0]
+    h_signal = CacheSignalPlotter.plot_cache_signal(cache, "h")
+    ax.plot(h_signal["timesteps"], h_signal["norms"], marker="o", color="darkorange")
+    ax.set_xlabel("Timestep")
+    ax.set_ylabel("||h_t||")
+    ax.set_title("Hidden State Norms (last episode)")
+
+    # 4. Label distribution
+    ax = axes[1, 1]
+    unique, counts = np.unique(labels, return_counts=True)
+    label_names = {0: "reward_region", 1: "novel_state", 2: "high_value"}
+    ax.bar([label_names.get(int(u), str(u)) for u in unique], counts, color="mediumseagreen")
+    ax.set_ylabel("Count")
+    ax.set_title("Label Distribution (across all episodes)")
+
+    plt.tight_layout()
+    plt.savefig(OUTPUT_DIR / "probing_dashboard.png", dpi=120, bbox_inches="tight")
+    print("    Saved probing_dashboard.png")
+    plt.show()
 
     print("\n" + "=" * 60)
     print("Probing complete!")
