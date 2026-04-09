@@ -36,7 +36,7 @@ class CacheSignalPlotter:
                     ]
                 )
                 return {"timesteps": timesteps, "kl_values": kl_values}
-            except KeyError:
+            except (KeyError, AttributeError, ValueError):
                 pass
 
         # Fallback if surprise() fails or not present, but we have "kl" keys
