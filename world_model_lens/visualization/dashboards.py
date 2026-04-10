@@ -31,7 +31,7 @@ def plot_quickstart_dashboard(
     n_cls: int,
     wm: Any,
     output_path: Optional[pathlib.Path] = None,
-) -> plt.Figure:
+) -> Any:
     """Six-panel overview: hidden-state PCA, surprise timeline, per-category
     heatmap, activation/head timelines, 3D state trajectory, counterfactual
     divergence heatmap.
@@ -163,7 +163,7 @@ def plot_probing_dashboard(
     concepts: Dict[str, np.ndarray],
     cache: Any,
     output_path: Optional[pathlib.Path] = None,
-) -> plt.Figure:
+) -> Any:
     """Four-panel probing dashboard: PCA scatter, probe accuracy bars,
     hidden-state norms, label distribution.
 
@@ -247,7 +247,7 @@ def plot_patching_dashboard(
     corrupted_cache: Any,
     corruption_start_t: int = 5,
     output_path: Optional[pathlib.Path] = None,
-) -> plt.Figure:
+) -> Any:
     """Three-panel patching dashboard: recovery rate heatmap, clean vs
     corrupted divergence curves, hidden-state norm comparison.
 
@@ -331,7 +331,7 @@ def plot_branching_dashboard(
     real_traj_cache: Any,
     fork_at: int,
     output_path: Optional[pathlib.Path] = None,
-) -> plt.Figure:
+) -> Any:
     """Three-panel branching dashboard: per-branch divergence curves, PCA
     scatter of all branch states, real-trajectory hidden-state norms with
     fork marker.
@@ -409,7 +409,7 @@ def plot_belief_dashboard(
     n_cls: int,
     imagined_traj: Any,
     output_path: Optional[pathlib.Path] = None,
-) -> plt.Figure:
+) -> Any:
     """Four-panel belief dashboard: surprise timeline with peaks, per-category
     KL heatmap, saliency bars, real-vs-imagined divergence with hallucination
     markers.
@@ -511,7 +511,7 @@ def plot_disentanglement_dashboard(
     cache: Any,
     factors: Dict[str, torch.Tensor],
     output_path: Optional[pathlib.Path] = None,
-) -> plt.Figure:
+) -> Any:
     """Three-panel disentanglement dashboard: MIG/DCI/SAP score bars,
     factor-dimension assignment heatmap, z_posterior PCA colored by a factor.
 
@@ -595,7 +595,7 @@ def plot_video_model_dashboard(
     frames: torch.Tensor,
     preds: torch.Tensor,
     output_path: Optional[pathlib.Path] = None,
-) -> plt.Figure:
+) -> Any:
     """Three-panel video model dashboard: latent state PCA, state norms over
     time, input vs predicted frame norms.
 
@@ -660,7 +660,7 @@ def plot_toy_video_dashboard(
     cache: Any,
     mem_result: Any,
     output_path: Optional[pathlib.Path] = None,
-) -> plt.Figure:
+) -> Any:
     """Three-panel toy-video dashboard: latent PCA of moving-pattern video,
     z_posterior activation norms, memory retention.
 
@@ -729,7 +729,7 @@ def plot_scientific_dynamics_dashboard(
     dep_result: Dict,
     mem_result: Any,
     output_path: Optional[pathlib.Path] = None,
-) -> plt.Figure:
+) -> Any:
     """Four-panel scientific-dynamics dashboard: 3D Lorenz attractor, latent
     PCA of Lorenz run, Lorenz vs pendulum latent norm comparison, temporal
     autocorrelations.
@@ -816,7 +816,7 @@ def plot_causal_engine_dashboard(
     cache: Any,
     intervention_t: int = 5,
     output_path: Optional[pathlib.Path] = None,
-) -> plt.Figure:
+) -> Any:
     """Three-panel causal-engine dashboard: cumulative divergence curve,
     per-branch intervention divergence bars, baseline hidden-state norms.
 
