@@ -10,7 +10,11 @@ import pathlib
 
 import numpy as np
 import torch
-import matplotlib.pyplot as plt
+
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    plt = None
 
 from world_model_lens.visualization.cache_plots import CacheSignalPlotter
 from world_model_lens.visualization.intervention_plots import InterventionVisualizer
