@@ -22,6 +22,110 @@ console = Console()
 
 
 @app.command()
+def download(
+    model: Optional[str] = typer.Argument(
+        None,
+        help="Model key to download (e.g. iris-atari-breakout). "
+             "Omit to download ALL currently available models.",
+    ),
+    list_ready: bool = typer.Option(
+        False, "--list", help="List all models ready for download and exit."
+    ),
+    list_all: bool = typer.Option(
+        False, "--list-all", help="List all registered models (including coming-soon)."
+    ),
+    cache_dir: Optional[str] = typer.Option(
+        None, "--cache-dir", help="Override the default cache directory."
+    ),
+    force: bool = typer.Option(
+        False, "--force", help="Re-download even if already cached."
+    ),
+    cache_info: bool = typer.Option(
+        False, "--cache-info", help="Show local cache status for all models and exit."
+    ),
+):
+    """Download known-good pretrained world model checkpoints from HuggingFace.
+
+    Examples:
+
+    \b
+      wml download --list                  # show available models
+      wml download iris-atari-breakout     # download one model
+      wml download                         # download all ready models
+      wml download --cache-info            # inspect local cache
+      wml download --list-all              # include coming-soon entries
+    """
+    from world_model_lens.hub.model_hub import ModelHub
+    from world_model_lens.hub.weights_downloader import WeightsDownloader
+
+    dl = WeightsDownloader(cache_dir=cache_dir)
+
+    if list_ready or list_all:
+        models = dl.list_all() if list_all else dl.list_ready()
+        table = Table(
+            title="WorldModelLens — Pretrained Checkpoints",
+            show_lines=True,
+        )
+        table.add_column("Name", style="cyan", no_wrap=True)
+        table.add_column("Backend", style="magenta")
+        table.add_column("Environment", style="green")
+        table.add_column("Status")
+        table.add_column("Description")
+        for m in models:
+            status = (
+                "[dim]coming soon[/dim]" if m.coming_soon else "[bold green]✓ ready[/bold green]"
+            )
+            table.add_row(
+                m.name, m.backend, m.environment, status, m.description[:55]
+            )
+        console.print(table)
+        return
+
+    if cache_info:
+        info = dl.cache_info()
+        table = Table(title="WorldModelLens — Local Cache", show_lines=True)
+        table.add_column("Model", style="cyan", no_wrap=True)
+        table.add_column("Cached", style="green")
+        table.add_column("Size (MB)")
+        table.add_column("Path", overflow="fold")
+        for name, entry in info.items():
+            cached_str = "[green]yes[/green]" if entry["cached"] else "[dim]no[/dim]"
+            size_str = str(entry["size_mb"]) if entry["size_mb"] else "—"
+            path_str = entry["path"] or "—"
+            table.add_row(name, cached_str, size_str, path_str)
+        console.print(table)
+        return
+
+    if model:
+        console.print(f"[bold]Downloading:[/bold] {model}")
+        try:
+            path = dl.download(model, force=force)
+            console.print(f"\n[green]✓ Checkpoint ready at:[/green] {path}")
+        except NotImplementedError as exc:
+            console.print(f"[yellow]NOT AVAILABLE:[/yellow] {exc}")
+            raise typer.Exit(1)
+        except KeyError as exc:
+            console.print(f"[red]Error:[/red] {exc}")
+            console.print("Run [bold]wml download --list-all[/bold] to see all model keys.")
+            raise typer.Exit(1)
+        except Exception as exc:
+            console.print(f"[red]Download failed:[/red] {exc}")
+            raise typer.Exit(1)
+    else:
+        # Download all ready models
+        ready = dl.list_ready()
+        if not ready:
+            console.print("[yellow]No models are currently ready for download.[/yellow]")
+            console.print("Run [bold]wml download --list-all[/bold] to see the full registry.")
+            return
+        console.print(f"[bold]Downloading {len(ready)} model(s)...[/bold]\n")
+        results = dl.download_all(force=force)
+        console.print(
+            f"\n[green]Done.[/green] {len(results)}/{len(ready)} model(s) downloaded."
+        )
+
+
+@app.command()
 def version():
     """Print version information."""
     console.print(f"[bold blue]World Model Lens[/bold blue] v{__version__}")
