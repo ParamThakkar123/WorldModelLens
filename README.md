@@ -186,6 +186,11 @@ traj, cache = wm.run_with_cache(observations=observations)
 # Inspect any activation at any timestep
 h_t = cache["h", 5]  # hidden state at timestep 5
 z_t = cache["z_posterior", 5]  # latent at timestep 5
+
+# New: Store distributions for uncertainty analysis
+import torch.distributions as dist
+cache["z_posterior", 5] = dist.Normal(mean, std)
+params = cache.get_distribution_params("z_posterior", 5)  # {"mean": ..., "std": ..., "variance": ...}
 ```
 
 ### 3. Replay & Debug
@@ -194,8 +199,8 @@ z_t = cache["z_posterior", 5]  # latent at timestep 5
 # Replay a specific trajectory
 from world_model_lens.branching import ImaginationBrancher
 
-brancer = ImaginationBrancher(wm)
-branch = brancer.create_branch(traj, branch_point=5)
+brancher = ImaginationBrancher(wm)
+branch = brancher.create_branch(traj, branch_point=5)
 
 # What if we took a different action?
 forked = branch.fork()
@@ -387,7 +392,7 @@ world_model_lens/
 │   └── sae.py               # SAE model definition
 │
 ├── branching/                # Branching tools
-│   ├── brancer.py           # Imagination branching
+│   ├── brancher.py          # Imagination branching
 │   └── counterfactual.py    # Counterfactual analysis
 │
 ├── safety/                   # Safety analysis

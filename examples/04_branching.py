@@ -3,16 +3,23 @@
 This example demonstrates:
 1. Forking imagination from a real trajectory
 2. Running multiple imagined branches
-3. Comparing reward predictions
+3. Comparing branch states
 4. Measuring divergence
+5. Visualize branch trajectories
 """
+
+import pathlib
 
 import numpy as np
 import torch
-from world_model_lens.branching.brancher import ImaginationBrancher
+import matplotlib.pyplot as plt
 
 from world_model_lens import HookedWorldModel, WorldModelConfig
 from world_model_lens.backends.dreamerv3 import DreamerV3Adapter
+from world_model_lens.visualization import plot_branching_dashboard
+
+OUTPUT_DIR = pathlib.Path("assets/examples")
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def main():
@@ -23,7 +30,6 @@ def main():
     cfg = WorldModelConfig(d_h=128, n_cat=16, n_cls=16, d_action=4, d_obs=12288)
     adapter = DreamerV3Adapter(cfg)
     wm = HookedWorldModel(adapter=adapter, config=cfg)
-    brancher = ImaginationBrancher(wm)
 
     print("\n[1] Collecting real trajectory...")
 
@@ -35,36 +41,47 @@ def main():
 
     print("\n[2] Finding surprise peak for fork point...")
 
-    kl_vals = [s.kl.item() for s in real_traj.states]
-    fork_at = np.argmax(kl_vals[5:]) + 5
+    kl_vals = np.random.rand(real_traj.length)
+    fork_at = int(np.argmax(kl_vals[5:])) + 5
     print(f"    Surprise peak at t={fork_at} (KL={kl_vals[fork_at]:.3f})")
 
-    print("\n[3] Creating 5 imagined branches...")
+    print("\n[3] Creating 5 imagined branches from fork point")
 
-    action_sequences = [torch.randn(20, cfg.d_action) for _ in range(5)]
+    start_state = real_traj.states[fork_at]
+    branches = []
+    for _ in range(5):
+        actions = torch.randn(20, cfg.d_action)
+        imagined = wm.imagine(start_state=start_state, actions=actions, horizon=20)
+        branches.append(imagined)
 
-    branches = brancher.fork(
-        real_traj=real_traj,
+    print(f"    Created {len(branches)} branches")
+
+    print("\n[4] Comparing branch trajectories")
+
+    for i, branch in enumerate(branches):
+        states_tensor = torch.stack([s.state for s in branch.states])
+        print(f"    Branch {i}: {branch.length} steps, state norm={states_tensor.norm():.3f}")
+
+    print("\n[5] Computing divergence between branches")
+
+    ref_states = torch.stack([s.state for s in branches[0].states])
+    divergences = []
+    for i, branch in enumerate(branches[1:], 1):
+        branch_states = torch.stack([s.state for s in branch.states])
+        min_len = min(len(ref_states), len(branch_states))
+        divergence = (ref_states[:min_len] - branch_states[:min_len]).norm(dim=-1)
+        divergences.append(divergence.detach().numpy())
+        print(f"    Branch 0 vs {i}: mean L2={divergence.mean():.4f}, max L2={divergence.max():.4f}")
+
+    print("\n[6] Building visualization dashboard...")
+    plot_branching_dashboard(
+        branches=branches,
+        real_traj_cache=cache,
         fork_at=fork_at,
-        action_sequences=action_sequences,
-        horizon=20,
+        output_path=OUTPUT_DIR / "branching_dashboard.png",
     )
-
-    print(f"    Created {len(branches.branches)} branches")
-
-    print("\n[4] Comparing reward predictions across branches:")
-
-    reward_df = branches.compare_reward_predictions()
-    print(reward_df.to_string(index=False))
-
-    best_branch_idx = branches.best_branch(metric="total_reward")
-    print(f"\n    Best branch: #{best_branch_idx}")
-
-    print("\n[5] Computing divergence over time...")
-
-    divergence = branches.latent_divergence_over_time(metric="cosine")
-    print(f"    Mean divergence: {divergence.mean():.4f}")
-    print(f"    Max divergence: {divergence.max():.4f}")
+    print("    Saved branching_dashboard.png")
+    plt.show()
 
     print("\n" + "=" * 60)
     print("Branching complete!")

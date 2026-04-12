@@ -1,5 +1,7 @@
 """Latent state representation for a single timestep."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -78,6 +80,11 @@ class LatentState:
     def z_indices(self) -> torch.Tensor:
         """Argmax indices of z_posterior [n_cat]."""
         return self.z_posterior.argmax(dim=-1)
+
+    @property
+    def reward(self) -> torch.Tensor | None:
+        """Backward-compatible alias for the actual reward received (reward_real)."""
+        return self.reward_real
 
     def to_device(self, device: torch.device) -> "LatentState":
         """Move all tensors to the specified device.

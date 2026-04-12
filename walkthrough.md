@@ -79,7 +79,7 @@ graph TD
 | `world_model_lens/probing/` | Linear probing & geometry | `prober.py`, `geometry.py`, `layer_prober.py`, `temporal_memory.py` |
 | `world_model_lens/sae/` | Sparse Autoencoders | `sae.py`, `trainer.py`, `evaluator.py` |
 | `world_model_lens/safety/` | Safety auditing & robustness | `analyzer.py`, `robustness.py` |
-| `world_model_lens/branching/` | Imagination branching & counterfactuals | `brancer.py`, `counterfactual.py`, `replay.py` |
+| `world_model_lens/branching/` | Imagination branching & counterfactuals | `brancher.py`, `counterfactual.py`, `replay.py` |
 | `world_model_lens/causal/` | Causal effect estimation | `effect_estimator.py`, `trajectory_attribution.py`, `counterfactual.py` |
 | `world_model_lens/visualization/` | Plotly-based visualizations | `latent_plots.py`, `prediction_plots.py`, `intervention_plots.py`, `temporal_maps.py` |
 | `world_model_lens/hub/` | HuggingFace model/trajectory sharing | `model_hub.py`, `trajectory_hub.py` |
@@ -130,12 +130,17 @@ A sequence of `WorldState` objects — the fundamental unit for replay, analysis
 
 ### 4. `ActivationCache` → [activation_cache.py](file:///d:/WorldModelLens/core/activation_cache.py)
 
-Dictionary-like storage indexed by `(component_name, timestep)`. Stores every intermediate activation during a forward pass:
+Dictionary-like storage indexed by `(component_name, timestep)`. Stores every intermediate activation during a forward pass. **New**: Supports storing full `torch.distributions.Distribution` objects for uncertainty analysis.
 
 ```python
 cache["h", 5]          # hidden state at t=5
 cache["z_posterior", 5] # latent posterior at t=5
 cache["kl", 5]         # KL divergence at t=5
+
+# New: Store distributions for variance analysis
+import torch.distributions as dist
+cache["z_posterior", 5] = dist.Normal(mean, std)
+params = cache.get_distribution_params("z_posterior", 5)  # {"mean": ..., "std": ..., "variance": ...}
 ```
 
 ### 5. `HookPoint` / `HookRegistry` → [hooks.py](file:///d:/WorldModelLens/core/hooks.py)
@@ -236,7 +241,7 @@ Each adapter exposes a `WorldModelCapabilities` descriptor (uses_actions, has_re
 
 - `analyzer.py` — Comprehensive safety audit reports
 - `robustness.py` — Adversarial perturbation analysis
-- `brancer.py` — Fork trajectories at any point for "what-if" exploration
+- `brancher.py` — Fork trajectories at any point for "what-if" exploration
 - `counterfactual.py` — Counterfactual analysis
 
 ---

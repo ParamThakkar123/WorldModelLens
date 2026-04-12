@@ -10,7 +10,6 @@ __pycache__/
 .Python
 build/
 develop-eggs/
-docs/
 dist/
 downloads/
 eggs/
@@ -67,6 +66,7 @@ instance/
 
 # Sphinx documentation
 docs/_build/
+docs/.doctrees/
 
 # PyBuilder
 target/
