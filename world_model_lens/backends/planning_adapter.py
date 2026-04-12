@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import torch
 import torch.nn as nn
 
-from world_model_lens.backends.generic_adapter import WorldModelAdapter, WorldModelConfig
+from world_model_lens.backends.base_adapter import WorldModelAdapter, WorldModelConfig
 
 
 class PlanningAdapter(WorldModelAdapter):

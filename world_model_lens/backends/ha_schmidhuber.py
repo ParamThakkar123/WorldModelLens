@@ -24,7 +24,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from world_model_lens.backends.generic_adapter import WorldModelAdapter, WorldModelConfig
+from world_model_lens.backends.base_adapter import WorldModelAdapter, WorldModelConfig
 from world_model_lens.core.types import LatentType, DynamicsType, WorldModelFamily
 
 
