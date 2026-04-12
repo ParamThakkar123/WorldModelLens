@@ -1,6 +1,6 @@
 """Migration compatibility probe for migrated backend adapters.
 
-This example is intentionally simple and diagnostic. It exercises the adapters
+This example is intentionally simple and diagnostic (and temporary). It exercises the adapters
 through the base adapter contract and then tries a small HookedWorldModel
 integration pass, similar in spirit to examples/01_quickstart.py.
 
@@ -27,7 +27,9 @@ from world_model_lens.backends.tdmpc2 import TDMPC2Adapter
 @dataclass
 class AdapterCase:
     name: str
-    builder: Callable[[], tuple[torch.nn.Module, AdapterConfig, torch.Tensor, Optional[torch.Tensor]]]
+    builder: Callable[
+        [], tuple[torch.nn.Module, AdapterConfig, torch.Tensor, Optional[torch.Tensor]]
+    ]
 
 
 def make_config(**overrides) -> AdapterConfig:
@@ -61,7 +63,9 @@ def build_planning() -> tuple[PlanningAdapter, AdapterConfig, torch.Tensor, torc
     return adapter, config, obs_seq, action_seq
 
 
-def build_decision_transformer() -> tuple[DecisionTransformerAdapter, AdapterConfig, torch.Tensor, torch.Tensor]:
+def build_decision_transformer() -> tuple[
+    DecisionTransformerAdapter, AdapterConfig, torch.Tensor, torch.Tensor
+]:
     config = make_config(d_obs=64, d_embed=32, d_action=4, has_policy_head=True)
     adapter = DecisionTransformerAdapter(config)
     obs_seq = torch.randn(4, config.d_obs)
@@ -100,7 +104,9 @@ def build_planet() -> tuple[PlaNetAdapter, AdapterConfig, torch.Tensor, torch.Te
     return adapter, config, obs_seq, action_seq
 
 
-def build_ha_schmidhuber() -> tuple[HaSchmidhuberWorldModelAdapter, AdapterConfig, torch.Tensor, torch.Tensor]:
+def build_ha_schmidhuber() -> tuple[
+    HaSchmidhuberWorldModelAdapter, AdapterConfig, torch.Tensor, torch.Tensor
+]:
     config = make_config(
         d_h=32,
         d_z=16,
@@ -190,13 +196,17 @@ def probe_case(case: AdapterCase) -> None:
 
     ok, msg = try_call(
         "transition",
-        lambda: adapter.transition(h0, z_for_step, action0.unsqueeze(0) if action0 is not None else None),
+        lambda: adapter.transition(
+            h0, z_for_step, action0.unsqueeze(0) if action0 is not None else None
+        ),
     )
     print(f"transition:    {'PASS' if ok else 'FAIL'} -> {msg}")
 
     next_h = None
     if ok:
-        next_h = adapter.transition(h0, z_for_step, action0.unsqueeze(0) if action0 is not None else None)
+        next_h = adapter.transition(
+            h0, z_for_step, action0.unsqueeze(0) if action0 is not None else None
+        )
 
     if next_h is None:
         next_h = h0

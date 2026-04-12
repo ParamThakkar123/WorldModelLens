@@ -16,7 +16,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from dataclasses import dataclass
 
-from world_model_lens.backends.base_adapter import WorldModelAdapter, AdapterConfig
+from world_model_lens.backends.base_adapter import BaseModelAdapter, AdapterConfig
 from world_model_lens.core.types import (
     WorldModelMetadata,
     ModelPurpose,
@@ -240,7 +240,7 @@ class DiffusionDynamics(nn.Module):
         return x
 
 
-class DiffusionWorldModelAdapter(WorldModelAdapter):
+class DiffusionWorldModelAdapter(BaseModelAdapter):
     """Adapter for diffusion-based world models.
 
     This adapter supports world models that use diffusion for:

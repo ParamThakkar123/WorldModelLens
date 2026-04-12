@@ -21,7 +21,7 @@ from typing import List, Optional, Tuple
 import torch
 import torch.nn as nn
 
-from world_model_lens.backends.base_adapter import WorldModelAdapter, AdapterConfig
+from world_model_lens.backends.base_adapter import BaseModelAdapter, AdapterConfig
 from world_model_lens.core.types import WorldModelFamily
 
 
@@ -163,7 +163,7 @@ class DreamerV1Actor(nn.Module):
         return self.fc(x)
 
 
-class DreamerV1Adapter(WorldModelAdapter):
+class DreamerV1Adapter(BaseModelAdapter):
     """Adapter for DreamerV1.
 
     The original Dreamer algorithm with:

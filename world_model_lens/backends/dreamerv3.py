@@ -5,7 +5,7 @@ from typing import Dict, List, Optional, Tuple
 import torch
 import torch.nn as nn
 
-from world_model_lens.backends.base_adapter import WorldModelAdapter, AdapterConfig
+from world_model_lens.backends.base_adapter import BaseModelAdapter, AdapterConfig
 
 
 def symlog(x: torch.Tensor) -> torch.Tensor:
@@ -216,7 +216,7 @@ class DreamerV3Critic(nn.Module):
         return self.mlp(x)
 
 
-class DreamerV3Adapter(WorldModelAdapter):
+class DreamerV3Adapter(BaseModelAdapter):
     """Full DreamerV3 implementation with RSSM."""
 
     def __init__(self, config: AdapterConfig):

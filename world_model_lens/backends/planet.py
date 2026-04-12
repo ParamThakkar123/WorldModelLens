@@ -20,7 +20,7 @@ from typing import List, Optional, Tuple
 import torch
 import torch.nn as nn
 
-from world_model_lens.backends.base_adapter import WorldModelAdapter, AdapterConfig
+from world_model_lens.backends.base_adapter import BaseModelAdapter, AdapterConfig
 from world_model_lens.core.types import WorldModelFamily
 
 
@@ -101,7 +101,7 @@ class PlaNetRewardPredictor(nn.Module):
         return self.fc(x)
 
 
-class PlaNetAdapter(WorldModelAdapter):
+class PlaNetAdapter(BaseModelAdapter):
     """Adapter for PlaNet (latent RSSM from pixels)."""
 
     def __init__(self, config: AdapterConfig):

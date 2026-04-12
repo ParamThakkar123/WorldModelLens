@@ -21,7 +21,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from world_model_lens.backends.base_adapter import WorldModelAdapter, AdapterConfig
+from world_model_lens.backends.base_adapter import BaseModelAdapter, AdapterConfig
 from world_model_lens.core.types import LatentType, DynamicsType, WorldModelFamily
 
 
@@ -115,7 +115,7 @@ class EgoMotionPredictor(nn.Module):
         return self.predictor(state)
 
 
-class AutonomousDrivingAdapter(WorldModelAdapter):
+class AutonomousDrivingAdapter(BaseModelAdapter):
     """Adapter for Autonomous Driving world models.
 
     These models:

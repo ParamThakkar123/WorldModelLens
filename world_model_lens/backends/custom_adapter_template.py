@@ -8,10 +8,10 @@ from typing import Dict, List, Optional, Tuple, Any
 import torch
 import torch.nn as nn
 
-from world_model_lens.backends.base_adapter import WorldModelAdapter, AdapterConfig
+from world_model_lens.backends.base_adapter import BaseModelAdapter, AdapterConfig
 
 
-class CustomAdapter(WorldModelAdapter):
+class CustomAdapter(BaseModelAdapter):
     """Template for implementing custom world model adapters.
 
     Tips and Common Mistakes:

@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 
 from world_model_lens import HookedWorldModel, WorldModelConfig
-from world_model_lens.backends.base_adapter import WorldModelAdapter, WorldModelCapabilities
+from world_model_lens.backends.base_adapter import BaseModelAdapter, WorldModelCapabilities
 
 
 def test_run_with_cache_returns_correct_length(hooked_wm, fake_obs_seq, fake_action_seq):
@@ -95,7 +95,7 @@ class LegacyAdapter(nn.Module):
         return logits_or_repr
 
 
-class CapabilitiesAdapter(WorldModelAdapter):
+class CapabilitiesAdapter(BaseModelAdapter):
     """New-style adapter with capabilities and (h, z, action) transition."""
 
     def __init__(self, config):

@@ -9,7 +9,7 @@ import math
 import torch
 import torch.nn as nn
 
-from world_model_lens.backends.base_adapter import WorldModelAdapter, AdapterConfig
+from world_model_lens.backends.base_adapter import BaseModelAdapter, AdapterConfig
 
 
 class VectorQuantizer(nn.Module):
@@ -123,7 +123,7 @@ class IRISContinueHead(nn.Module):
         return self.fc(h)
 
 
-class IRISAdapter(WorldModelAdapter):
+class IRISAdapter(BaseModelAdapter):
     """IRIS: Image Reinforcement with Implicit Skills.
 
     Transformer-based world model with VQVAE discretization.

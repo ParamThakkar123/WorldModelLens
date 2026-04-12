@@ -20,7 +20,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from world_model_lens.backends.base_adapter import WorldModelAdapter, AdapterConfig
+from world_model_lens.backends.base_adapter import BaseModelAdapter, AdapterConfig
 from world_model_lens.core.types import LatentType, DynamicsType, WorldModelFamily
 
 
@@ -108,7 +108,7 @@ class VideoDynamicsTransformer(nn.Module):
         return output.view(B, T, N, D)
 
 
-class VideoWorldModelAdapter(WorldModelAdapter):
+class VideoWorldModelAdapter(BaseModelAdapter):
     """Adapter for Video World Models (WorldDreamer-style).
 
     These models predict future video frames from past observations:

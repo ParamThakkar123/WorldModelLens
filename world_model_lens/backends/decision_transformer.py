@@ -19,7 +19,7 @@ from typing import List, Optional, Tuple
 import torch
 import torch.nn as nn
 
-from world_model_lens.backends.base_adapter import WorldModelAdapter, AdapterConfig
+from world_model_lens.backends.base_adapter import BaseModelAdapter, AdapterConfig
 from world_model_lens.core.types import WorldModelFamily
 
 
@@ -123,7 +123,7 @@ class DecisionTransformer(nn.Module):
         return action_logits, state_predictions
 
 
-class DecisionTransformerAdapter(WorldModelAdapter):
+class DecisionTransformerAdapter(BaseModelAdapter):
     """Adapter for Decision Transformer.
 
     Transformer-based RL that treats trajectory as a sequence.

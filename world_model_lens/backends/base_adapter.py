@@ -115,7 +115,7 @@ class WorldModelCapabilities:
         return self.is_rl_trained and self.has_reward_head and self.has_critic
 
 
-class WorldModelAdapter(ABC, nn.Module):
+class BaseModelAdapter(ABC, nn.Module):
     """Abstract base class for world model architectures.
 
     Universal interface that works with ANY world model type:
@@ -441,7 +441,7 @@ class WorldModelAdapter(ABC, nn.Module):
 
         return torch.stack(h_seq, dim=0), torch.stack(z_seq, dim=0)
 
-    def to(self, device: torch.device) -> "WorldModelAdapter":
+    def to(self, device: torch.device) -> "BaseModelAdapter":
         """Move adapter to device (standard nn.Module interface)."""
         return super().to(device)
 
@@ -451,3 +451,7 @@ class WorldModelAdapter(ABC, nn.Module):
         Override in subclasses to add validation logic.
         """
         pass
+
+
+# Backward-compatible alias during the base-adapter migration.
+WorldModelAdapter = BaseModelAdapter

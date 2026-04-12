@@ -21,7 +21,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from world_model_lens.backends.base_adapter import WorldModelAdapter, AdapterConfig
+from world_model_lens.backends.base_adapter import BaseModelAdapter, AdapterConfig
 from world_model_lens.core.types import LatentType, DynamicsType, WorldModelFamily
 
 
@@ -73,7 +73,7 @@ class LatentDynamics(nn.Module):
         return self.net(x)
 
 
-class ContrastiveAdapter(WorldModelAdapter):
+class ContrastiveAdapter(BaseModelAdapter):
     """Adapter for Contrastive/Predictive world models (CWM, SPR-style).
 
     These models learn latent dynamics through:

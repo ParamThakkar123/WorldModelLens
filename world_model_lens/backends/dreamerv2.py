@@ -9,7 +9,7 @@ from typing import Dict, List, Optional, Tuple
 import torch
 import torch.nn as nn
 
-from world_model_lens.backends.base_adapter import WorldModelAdapter, AdapterConfig
+from world_model_lens.backends.base_adapter import BaseModelAdapter, AdapterConfig
 
 
 class MLP(nn.Module):
@@ -170,7 +170,7 @@ class DreamerV2Critic(nn.Module):
         return self.mlp(x)
 
 
-class DreamerV2Adapter(WorldModelAdapter):
+class DreamerV2Adapter(BaseModelAdapter):
     """DreamerV2 with ELU activations and Gaussian rewards."""
 
     def __init__(self, config: AdapterConfig):

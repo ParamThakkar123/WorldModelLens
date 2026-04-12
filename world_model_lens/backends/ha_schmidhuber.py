@@ -24,7 +24,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from world_model_lens.backends.base_adapter import WorldModelAdapter, AdapterConfig
+from world_model_lens.backends.base_adapter import BaseModelAdapter, AdapterConfig
 from world_model_lens.core.types import WorldModelFamily
 
 
@@ -150,7 +150,7 @@ class SimpleController(nn.Module):
         return self.fc(x)
 
 
-class HaSchmidhuberWorldModelAdapter(WorldModelAdapter):
+class HaSchmidhuberWorldModelAdapter(BaseModelAdapter):
     """Adapter for Ha & Schmidhuber "World Models" (VAE + MDN-RNN + Controller)."""
 
     def __init__(self, config: AdapterConfig):

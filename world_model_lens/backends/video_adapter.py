@@ -11,7 +11,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import torch
 import torch.nn as nn
 
-from world_model_lens.backends.base_adapter import WorldModelAdapter, AdapterConfig
+from world_model_lens.backends.base_adapter import BaseModelAdapter, AdapterConfig
 
 
 class VideoEncoder(nn.Module):
@@ -64,7 +64,7 @@ class VideoDynamics(nn.Module):
         return self.dynamics(state)
 
 
-class VideoWorldModelAdapter(WorldModelAdapter):
+class VideoWorldModelAdapter(BaseModelAdapter):
     """World model adapter for video prediction.
 
     This is a non-RL world model - it has no reward, value, or action predictions.
