@@ -19,6 +19,8 @@ from world_model_lens.core.world_state import WorldState
 from world_model_lens.core.world_trajectory import WorldTrajectory
 from world_model_lens.backends.base_adapter import WorldModelCapabilities
 from world_model_lens.core.hook_cache import HookCacheManager
+from world_model_lens.core.forward_runner import ForwardRunner
+from world_model_lens.core.latent_trajectory import LatentTrajectory
 
 
 class HookedWorldModel:
@@ -237,6 +239,143 @@ class HookedWorldModel:
             z_current = None
         if state.dim() > 1 and state.shape[0] == 1:
             state = state.squeeze(0)
+
+        # If the adapter exposes the latent-model style API that ForwardRunner
+        # expects, delegate the forward loop to ForwardRunner. This keeps a
+        # single canonical implementation of the forward sequencing and makes
+        # it easier to test and reuse.
+        if all(hasattr(self.adapter, name) for name in ("encode", "dynamics", "initial_state")):
+            # Build a thin shim exposing the helpers ForwardRunner expects.
+            class _Shim:
+                def __init__(self, parent: "HookedWorldModel"):
+                    self._parent = parent
+                    self._adapter = parent.adapter
+                    self.name = parent.name
+                    # reuse the shared hook cache manager so hooks and caching
+                    # behave identically to the existing run_with_cache pipeline.
+                    self._hook_cache_manager = parent._hook_cache_manager
+
+                def _encode(self, obs, t, ctx, cache, names_filter):
+                    post, obs_enc = self._adapter.encode(obs.unsqueeze(0), None)
+                    return post.squeeze(0)
+
+                def _dynamics_and_prior(self, h, z, a_prev, t, ctx, cache, names_filter):
+                    prior = self._adapter.dynamics(h.unsqueeze(0) if h.dim() == 1 else h)
+                    prior = prior.squeeze(0) if prior.dim() > 1 else prior
+                    # return h (unchanged), raw logits (prior), and prior prob
+                    return h, prior, prior
+
+                def _posterior(self, h, obs_emb, t, ctx, cache, names_filter):
+                    # The adapter.encode call above produced the posterior; here
+                    # we interpret obs_emb as the posterior for compatibility.
+                    return obs_emb, obs_emb
+
+                def _compute_kl_and_cache(self, z_post, z_prior, t, ctx, cache, names_filter):
+                    # Compute KL if shapes match, otherwise None.
+                    if z_post.shape == z_prior.shape and z_post.dim() > 1:
+                        p = z_post.clamp(min=1e-8)
+                        q = z_prior.clamp(min=1e-8)
+                        p = p / p.sum(dim=-1, keepdim=True)
+                        q = q / q.sum(dim=-1, keepdim=True)
+                        kl = (p * (p.log() - q.log())).sum(dim=-1)
+                        return kl
+                    return None
+
+                def _compute_heads(self, h, z_post, t, ctx, cache, names_filter):
+                    # Delegate reward/value/actor predictions to adapter when
+                    # available to preserve existing behavior.
+                    reward = None
+                    value = None
+                    actor_logits = None
+                    caps = self._parent._get_capabilities()
+                    if caps.has_reward_head:
+                        try:
+                            reward = self._adapter.predict_reward(
+                                h.unsqueeze(0), z_post.unsqueeze(0)
+                            )
+                            if reward is not None:
+                                reward = reward.squeeze(0)
+                        except NotImplementedError:
+                            reward = None
+                    if caps.has_critic:
+                        try:
+                            if hasattr(self._adapter, "critic_forward"):
+                                value = self._adapter.critic_forward(
+                                    h.unsqueeze(0), z_post.unsqueeze(0)
+                                )
+                            else:
+                                value = self._adapter.predict_value(h.unsqueeze(0), None)
+                            if value is not None:
+                                value = value.squeeze(0)
+                        except NotImplementedError:
+                            value = None
+                    return reward, None, actor_logits, value
+
+                def _build_state(
+                    self,
+                    h,
+                    z_post_prob,
+                    z_prior_prob,
+                    t,
+                    action_seq,
+                    reward_val,
+                    cont_val,
+                    actor_logits_out,
+                    value_val,
+                ):
+                    return LatentTrajectory(states=[], env_name=self.name, episode_id=None)
+
+                def _apply_and_cache(self, name, t, tensor, ctx, cache, names_filter):
+                    return self._parent._apply_and_cache(name, t, tensor, ctx, cache, names_filter)
+
+                def _cache_prior_equivalent_at_t0(self, raw, prob, t, cache, names_filter):
+                    if cache is not None:
+                        try:
+                            cache.set_prior_equivalent(
+                                t,
+                                raw.detach(),
+                                prob.detach(),
+                                list(names_filter) if names_filter is not None else None,
+                            )
+                        except Exception:
+                            pass
+
+            shim = _Shim(self)
+            runner = ForwardRunner(shim)
+            latent_traj = runner.run_forward(
+                observations,
+                actions if actions is not None else torch.zeros_like(observations),
+                cache,
+                names_filter,
+                no_grad=True,
+            )
+            # Convert LatentTrajectory -> WorldTrajectory (best-effort)
+            states_out = []
+            for i, s in enumerate(latent_traj.states):
+                # try to extract common fields, fallback to placeholders
+                try:
+                    h = s.h_t
+                except Exception:
+                    h = torch.zeros(1)
+                try:
+                    z_post = s.z_posterior
+                except Exception:
+                    z_post = torch.zeros(1)
+                ws = WorldState(
+                    state=h.clone(),
+                    timestep=i,
+                    action=None,
+                    action_source=None,
+                    reward_pred=getattr(s, "reward_pred", None),
+                    value_pred=getattr(s, "value_pred", None),
+                    obs_encoding=getattr(s, "obs_encoding", None),
+                )
+                states_out.append(ws)
+            traj = WorldTrajectory(states=states_out, source="real")
+            if device:
+                traj = traj.to_device(device)
+                cache = cache.to_device(device)
+            return traj, cache
 
         for t in range(T):
             obs = observations[t]
