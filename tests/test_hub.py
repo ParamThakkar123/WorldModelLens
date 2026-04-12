@@ -24,9 +24,13 @@ from typing import Dict
 from unittest.mock import MagicMock, patch
 
 import pytest
+import torch
+import warnings
 
+from world_model_lens.backends.iris import IRISAdapter
 from world_model_lens.hub.model_hub import ModelHub, ModelInfo
 from world_model_lens.hub.weights_downloader import WeightsDownloader
+from world_model_lens import hub
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -56,7 +60,7 @@ def fake_checkpoint_file(tmp_path: Path) -> Path:
     has a component prefix (``world_model.*``, ``tokenizer.*``, ``actor_critic.*``).
     This fixture replicates that structure with tiny tensors so tests run fast.
     """
-    import torch
+    
 
     ckpt = {
         # world_model — transformer blocks (just one block for speed)
@@ -164,45 +168,30 @@ def test_registry_has_iris_atari_entries():
         "iris-atari-alien",
     }
     actual = set(ModelHub._MODELS.keys())
-    assert expected.issubset(actual), (
-        f"Missing registry entries: {expected - actual}"
-    )
+    assert expected.issubset(actual), f"Missing registry entries: {expected - actual}"
 
 
 def test_registry_iris_entries_are_downloadable():
     """All iris-atari-* entries must be marked ready (coming_soon=False)."""
-    iris_entries = [
-        m for name, m in ModelHub._MODELS.items()
-        if name.startswith("iris-atari-")
-    ]
+    iris_entries = [m for name, m in ModelHub._MODELS.items() if name.startswith("iris-atari-")]
     assert len(iris_entries) >= 5, "Expected at least 5 IRIS Atari entries"
     for m in iris_entries:
         assert not m.coming_soon, f"{m.name} should not be coming_soon"
-        assert m.hf_repo_id == "eloialonso/iris", (
-            f"{m.name}: wrong repo_id {m.hf_repo_id!r}"
-        )
+        assert m.hf_repo_id == "eloialonso/iris", f"{m.name}: wrong repo_id {m.hf_repo_id!r}"
         assert m.hf_filename is not None
 
 
 def test_registry_dreamerv3_entries_are_coming_soon():
     """All dreamerv3-* entries must be coming_soon=True (JAX-only weights)."""
-    dreamer_entries = [
-        m for name, m in ModelHub._MODELS.items()
-        if name.startswith("dreamerv3-")
-    ]
+    dreamer_entries = [m for name, m in ModelHub._MODELS.items() if name.startswith("dreamerv3-")]
     assert len(dreamer_entries) >= 2, "Expected at least 2 DreamerV3 entries"
     for m in dreamer_entries:
-        assert m.coming_soon, (
-            f"{m.name} should be coming_soon (no public PyTorch weights)"
-        )
+        assert m.coming_soon, f"{m.name} should be coming_soon (no public PyTorch weights)"
 
 
 def test_registry_tdmpc2_entries_are_coming_soon():
     """All tdmpc2-* entries must be coming_soon=True."""
-    tdmpc2_entries = [
-        m for name, m in ModelHub._MODELS.items()
-        if name.startswith("tdmpc2-")
-    ]
+    tdmpc2_entries = [m for name, m in ModelHub._MODELS.items() if name.startswith("tdmpc2-")]
     assert len(tdmpc2_entries) >= 1, "Expected at least 1 TD-MPC2 entry"
     for m in tdmpc2_entries:
         assert m.coming_soon, f"{m.name} should be coming_soon"
@@ -226,9 +215,7 @@ def test_list_available_default_excludes_coming_soon():
     """list_available() without args should only return downloadable models."""
     models = ModelHub.list_available()
     for m in models:
-        assert not m.coming_soon, (
-            f"list_available() returned coming_soon model: {m.name}"
-        )
+        assert not m.coming_soon, f"list_available() returned coming_soon model: {m.name}"
 
 
 def test_list_available_include_coming_soon_returns_all():
@@ -425,7 +412,7 @@ def test_map_iris_keys_unknown_tokenizer_key_goes_to_skipped():
 
 def test_load_iris_raises_on_wrong_checkpoint_type(tmp_path: Path):
     """_load_iris raises RuntimeError if checkpoint is not a dict."""
-    import torch
+    
 
     bad_path = tmp_path / "bad.pt"
     torch.save([1, 2, 3], bad_path)  # save a list instead of dict
@@ -435,7 +422,7 @@ def test_load_iris_raises_on_wrong_checkpoint_type(tmp_path: Path):
 
 def test_load_iris_raises_when_world_model_key_missing(tmp_path: Path):
     """_load_iris raises RuntimeError when no 'world_model.*' keys are present."""
-    import torch
+
 
     # A dict that has no world_model.* keys at all
     bad_ckpt = {
@@ -450,9 +437,7 @@ def test_load_iris_raises_when_world_model_key_missing(tmp_path: Path):
 
 def test_load_iris_returns_iris_adapter(fake_checkpoint_file: Path):
     """_load_iris returns an IRISAdapter instance from a minimal checkpoint."""
-    import warnings
-
-    from world_model_lens.backends.iris import IRISAdapter
+    
 
     # A partial load is expected (fake checkpoint has tiny/wrong shapes)
     with warnings.catch_warnings(record=True):
@@ -464,8 +449,6 @@ def test_load_iris_returns_iris_adapter(fake_checkpoint_file: Path):
 
 def test_load_iris_returns_eval_mode(tmp_path: Path):
     """Adapter returned by _load_iris must be in eval() mode."""
-    import torch
-    import warnings
 
     # Build an isolated checkpoint in this test's own tmp_path
     ckpt = {
@@ -536,9 +519,7 @@ def test_downloader_is_cached_true_after_pointer_written(
     assert downloader.is_cached("iris-atari-pong") is True
 
 
-def test_downloader_clear_cache_removes_pointer(
-    downloader: WeightsDownloader, tmp_path: Path
-):
+def test_downloader_clear_cache_removes_pointer(downloader: WeightsDownloader, tmp_path: Path):
     """clear_cache(name) removes the pointer file for that model."""
     fake_file = tmp_path / "Pong.pt"
     fake_file.write_bytes(b"fake")
@@ -565,9 +546,7 @@ def test_downloader_clear_cache_all(downloader: WeightsDownloader, tmp_path: Pat
     assert downloader.is_cached("iris-atari-breakout") is False
 
 
-def test_downloader_download_skips_when_cached(
-    downloader: WeightsDownloader, tmp_path: Path
-):
+def test_downloader_download_skips_when_cached(downloader: WeightsDownloader, tmp_path: Path):
     """download() returns the cached path without calling ModelHub.pull()."""
     fake_file = tmp_path / "Pong.pt"
     fake_file.write_bytes(b"fake")
@@ -590,17 +569,13 @@ def test_downloader_download_calls_pull_when_not_cached(
 
     with patch.object(ModelHub, "pull", return_value=str(fake_file)) as mock_pull:
         result = downloader.download("iris-atari-pong", verbose=False)
-        mock_pull.assert_called_once_with(
-            "iris-atari-pong", cache_dir=None, force=False
-        )
+        mock_pull.assert_called_once_with("iris-atari-pong", cache_dir=None, force=False)
 
     assert result == fake_file
     assert downloader.is_cached("iris-atari-pong") is True
 
 
-def test_downloader_download_force_re_downloads(
-    downloader: WeightsDownloader, tmp_path: Path
-):
+def test_downloader_download_force_re_downloads(downloader: WeightsDownloader, tmp_path: Path):
     """download(force=True) calls ModelHub.pull() even when already cached."""
     fake_file = tmp_path / "Pong.pt"
     fake_file.write_bytes(b"fake")
@@ -612,9 +587,7 @@ def test_downloader_download_force_re_downloads(
         mock_pull.assert_called_once()
 
 
-def test_downloader_download_all_returns_dict(
-    downloader: WeightsDownloader, tmp_path: Path
-):
+def test_downloader_download_all_returns_dict(downloader: WeightsDownloader, tmp_path: Path):
     """download_all() returns a dict mapping name → path for all ready models."""
     ready = downloader.list_ready()
     fake_path = str(tmp_path / "model.pt")
@@ -657,31 +630,28 @@ def test_downloader_download_all_handles_individual_failures(
 
 def test_hub_package_exports_model_hub():
     """world_model_lens.hub must export ModelHub."""
-    from world_model_lens import hub
 
     assert hasattr(hub, "ModelHub")
 
 
 def test_hub_package_exports_model_info():
     """world_model_lens.hub must export ModelInfo (not the old ModelCard name)."""
-    from world_model_lens import hub
+    
 
     assert hasattr(hub, "ModelInfo")
-    assert not hasattr(hub, "ModelCard"), (
-        "ModelCard was renamed to ModelInfo; old name must not be re-exported"
-    )
+    assert not hasattr(
+        hub, "ModelCard"
+    ), "ModelCard was renamed to ModelInfo; old name must not be re-exported"
 
 
 def test_hub_package_exports_weights_downloader():
     """world_model_lens.hub must export WeightsDownloader."""
-    from world_model_lens import hub
 
     assert hasattr(hub, "WeightsDownloader")
 
 
 def test_hub_package_exports_trajectory_hub():
     """world_model_lens.hub must export TrajectoryHub and TrajectoryDataset."""
-    from world_model_lens import hub
 
     assert hasattr(hub, "TrajectoryHub")
     assert hasattr(hub, "TrajectoryDataset")
@@ -710,8 +680,6 @@ def test_pull_returns_path_ending_in_pt(tmp_path: Path):
 @pytest.mark.network
 def test_load_iris_atari_pong_returns_adapter(tmp_path: Path):
     """[NETWORK] load() returns an IRISAdapter for iris-atari-pong."""
-    import warnings
-    from world_model_lens.backends.iris import IRISAdapter
 
     with warnings.catch_warnings(record=True):
         warnings.simplefilter("always")

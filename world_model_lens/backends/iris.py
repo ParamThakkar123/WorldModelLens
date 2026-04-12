@@ -4,7 +4,7 @@ IRIS uses VQVAE to discretize observations, then a GPT-style
 transformer predicts next tokens.
 """
 
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, cast
 import math
 import torch
 import torch.nn as nn
@@ -112,7 +112,7 @@ class IRISRewardHead(nn.Module):
         )
 
     def forward(self, h: torch.Tensor) -> torch.Tensor:
-        return self.fc(h)
+        return cast(torch.Tensor, self.fc(h))
 
 
 class IRISContinueHead(nn.Module):
@@ -121,7 +121,7 @@ class IRISContinueHead(nn.Module):
         self.fc = nn.Linear(d_model, 1)
 
     def forward(self, h: torch.Tensor) -> torch.Tensor:
-        return self.fc(h)
+        return cast(torch.Tensor, self.fc(h))
 
 
 class IRISAdapter(WorldModelAdapter):
@@ -149,12 +149,12 @@ class IRISAdapter(WorldModelAdapter):
         self.continue_head = IRISContinueHead(d_model)
 
         self._device = torch.device("cpu")
-        
+
         # Set capabilities so HookedWorldModel knows to call the predictive heads
         self._capabilities.has_reward_head = True
-        self._capabilities.has_continue_head = False # Disabled for now (needs mapping)
-        self._capabilities.has_actor = False        # Disabled for now (needs mapping)
-        self._capabilities.has_critic = False       # Disabled for now (needs mapping)
+        self._capabilities.has_continue_head = False  # Disabled for now (needs mapping)
+        self._capabilities.has_actor = False  # Disabled for now (needs mapping)
+        self._capabilities.has_critic = False  # Disabled for now (needs mapping)
         self._capabilities.uses_actions = True
 
     @property
@@ -201,9 +201,11 @@ class IRISAdapter(WorldModelAdapter):
         # Transformer predicts next tokens for the entire sequence
         logits, _ = self.transformer(h)
         # Return only the last timestep's logits for the next prediction
-        return logits[:, -1, :]
+        return cast(torch.Tensor, logits[:, -1, :])
 
-    def transition(self, h: torch.Tensor, z: torch.Tensor, action: torch.Tensor = None) -> torch.Tensor:
+    def transition(
+        self, h: torch.Tensor, z: torch.Tensor, action: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
         """Update history by appending the new token.
 
         Args:
@@ -214,7 +216,7 @@ class IRISAdapter(WorldModelAdapter):
         # Ensure h is [B, T]
         if h.dim() == 1:
             h = h.unsqueeze(0)
-        
+
         B = h.shape[0]
 
         # Ensure z is [B, 1] index
@@ -247,44 +249,42 @@ class IRISAdapter(WorldModelAdapter):
             h = h.unsqueeze(0)
         # We only care about the last token's representation: [B, T, D] -> [B, D]
         _, last_h = self.transformer(h)
-        return last_h[:, -1, :]
+        return cast(torch.Tensor, last_h[:, -1, :])
 
-    def predict_reward(self, h: torch.Tensor, z: torch.Tensor = None) -> torch.Tensor:
+    def predict_reward(self, h: torch.Tensor, z: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Predict reward from history."""
         feat = self._get_transformer_h(h)
-        return self.reward_head(feat)
+        return cast(torch.Tensor, self.reward_head(feat))
 
-    def predict_continue(self, h: torch.Tensor, z: torch.Tensor = None) -> torch.Tensor:
+    def predict_continue(self, h: torch.Tensor, z: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Predict continue probability from history."""
         feat = self._get_transformer_h(h)
-        return self.continue_head(feat)
+        return cast(torch.Tensor, self.continue_head(feat))
 
-    def actor_forward(self, h: torch.Tensor, z: torch.Tensor = None) -> torch.Tensor:
+    def actor_forward(self, h: torch.Tensor, z: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Predict action logits from history."""
         feat = self._get_transformer_h(h)
-        return self.transformer.head(feat)
+        return cast(torch.Tensor, self.transformer.head(feat))
 
-    def critic_forward(self, h: torch.Tensor, z: torch.Tensor = None) -> torch.Tensor:
+    def critic_forward(self, h: torch.Tensor, z: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Predict value from history."""
         feat = self._get_transformer_h(h)
-        return self.reward_head(feat) # In many IRIS versions, reward/value heads are shared or similar
+        return cast(
+            torch.Tensor, self.reward_head(feat)
+        )  # In many IRIS versions, reward/value heads are shared or similar
 
-    def initial_state(self, batch_size: int = 1, device: Optional[torch.device] = None) -> Tuple[torch.Tensor, torch.Tensor]:
+    def initial_state(
+        self, batch_size: int = 1, device: Optional[torch.device] = None
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Create empty history."""
         device = device or self._device
-        # h: [B, 1] with a zero token as a placeholder. 
+        # h: [B, 1] with a zero token as a placeholder.
         h = torch.zeros(batch_size, 1, dtype=torch.long, device=device)
         # z: [B, vocab] initial distribution
         z = torch.zeros(batch_size, self.vocab_size, device=device)
         return h, z
 
-    def named_parameters(self) -> Dict[str, torch.Tensor]:
-        params = {}
-        for name, param in self.named_parameters(full=True):
-            params[name] = param
-        return params
-
-    def to(self, device: torch.device) -> "IRISAdapter":
+    def to(self, device: torch.device, **kwargs: object) -> "IRISAdapter":  # type: ignore[override]
         super().to(device)
         self._device = device
         return self

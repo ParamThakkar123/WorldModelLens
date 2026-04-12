@@ -33,6 +33,9 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
+from rich.console import Console
+from rich.table import Table
+
 
 # Allow running from the repository root without installing the package.
 sys.path.insert(0, str(Path(__file__).parent))
@@ -40,8 +43,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 def _build_table_rich(models, title: str) -> None:
     """Print a Rich-formatted table."""
-    from rich.console import Console
-    from rich.table import Table
+    
 
     console = Console()
     table = Table(title=title, show_lines=True)
@@ -87,9 +89,6 @@ def _print_table(models, title: str = "WorldModelLens — Known-Good Checkpoints
 
 def _print_cache(info: dict) -> None:
     try:
-        from rich.console import Console
-        from rich.table import Table
-
         console = Console()
         table = Table(title="WorldModelLens — Local Cache", show_lines=True)
         table.add_column("Model", style="cyan", no_wrap=True)

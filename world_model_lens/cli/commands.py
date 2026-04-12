@@ -5,13 +5,19 @@ This CLI supports both RL and non-RL world models:
 - Non-RL models: Latent geometry, surprise, disentanglement, SAE analysis
 """
 
-from typing import Optional, List, Literal
+from typing import Any, List, Literal, Optional, cast
 import typer
 from rich.console import Console
 from rich.table import Table
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from world_model_lens import __version__
+from world_model_lens.hub.model_hub import ModelHub
+from world_model_lens.hub.weights_downloader import WeightsDownloader
+import torch
+from world_model_lens.utils.device import get_device
+from world_model_lens import HookedWorldModel, WorldModelConfig
+from world_model_lens.envs import EpisodeCollector
 
 app = typer.Typer(
     name="wml",
@@ -26,7 +32,7 @@ def download(
     model: Optional[str] = typer.Argument(
         None,
         help="Model key to download (e.g. iris-atari-breakout). "
-             "Omit to download ALL currently available models.",
+        "Omit to download ALL currently available models.",
     ),
     list_ready: bool = typer.Option(
         False, "--list", help="List all models ready for download and exit."
@@ -37,9 +43,7 @@ def download(
     cache_dir: Optional[str] = typer.Option(
         None, "--cache-dir", help="Override the default cache directory."
     ),
-    force: bool = typer.Option(
-        False, "--force", help="Re-download even if already cached."
-    ),
+    force: bool = typer.Option(False, "--force", help="Re-download even if already cached."),
     cache_info: bool = typer.Option(
         False, "--cache-info", help="Show local cache status for all models and exit."
     ),
@@ -55,8 +59,7 @@ def download(
       wml download --cache-info            # inspect local cache
       wml download --list-all              # include coming-soon entries
     """
-    from world_model_lens.hub.model_hub import ModelHub
-    from world_model_lens.hub.weights_downloader import WeightsDownloader
+    
 
     dl = WeightsDownloader(cache_dir=cache_dir)
 
@@ -75,9 +78,7 @@ def download(
             status = (
                 "[dim]coming soon[/dim]" if m.coming_soon else "[bold green]✓ ready[/bold green]"
             )
-            table.add_row(
-                m.name, m.backend, m.environment, status, m.description[:55]
-            )
+            table.add_row(m.name, m.backend, m.environment, status, m.description[:55])
         console.print(table)
         return
 
@@ -120,9 +121,7 @@ def download(
             return
         console.print(f"[bold]Downloading {len(ready)} model(s)...[/bold]\n")
         results = dl.download_all(force=force)
-        console.print(
-            f"\n[green]Done.[/green] {len(results)}/{len(ready)} model(s) downloaded."
-        )
+        console.print(f"\n[green]Done.[/green] {len(results)}/{len(ready)} model(s) downloaded.")
 
 
 @app.command()
@@ -134,8 +133,7 @@ def version():
 @app.command()
 def info():
     """Show device and version information."""
-    import torch
-    from world_model_lens.utils.device import get_device
+    
 
     device = get_device()
     console.print(f"[bold]World Model Lens[/bold] v{__version__}")
@@ -176,9 +174,7 @@ def analyze(
     - Surprise timeline
     - Disentanglement metrics
     """
-    from world_model_lens import HookedWorldModel, WorldModelConfig
-    from world_model_lens.hub import ModelHub
-    from world_model_lens.envs import EpisodeCollector
+    
 
     console.print(f"[bold]Analyzing:[/bold] {checkpoint_path}")
     console.print(f"[bold]Backend:[/bold] {backend}")
@@ -186,8 +182,8 @@ def analyze(
     console.print(f"[bold]Mode:[/bold] {mode}")
 
     try:
-        cfg = WorldModelConfig(d_action=4, d_obs=12288, backend=backend)
-        wm = HookedWorldModel.from_checkpoint(checkpoint_path, backend=backend, cfg=cfg)
+        cfg = WorldModelConfig(d_action=4, d_obs=12288, backend=cast(Any, backend))
+        wm = HookedWorldModel.from_checkpoint(checkpoint_path, backend=backend, config=cfg)
 
         caps = wm.capabilities if hasattr(wm, "capabilities") else None
 
@@ -271,7 +267,6 @@ def compare(
 
     Compares latent geometry, surprise, and (for RL models) reward prediction.
     """
-    from world_model_lens import HookedWorldModel, WorldModelConfig
 
     console.print("[bold]Model Comparison[/bold]")
     console.print(f"Model A: {checkpoint_a}")
@@ -348,14 +343,14 @@ def capabilities(
     Displays which optional features (decoder, reward head, critic, etc.)
     are available in the model.
     """
-    from world_model_lens import HookedWorldModel, WorldModelConfig
+    
 
     console.print(f"[bold]Inspecting:[/bold] {checkpoint_path}")
     console.print(f"[bold]Backend:[/bold] {backend}")
 
     try:
-        cfg = WorldModelConfig(d_action=4, d_obs=12288, backend=backend)
-        wm = HookedWorldModel.from_checkpoint(checkpoint_path, backend=backend, cfg=cfg)
+        cfg = WorldModelConfig(d_action=4, d_obs=12288, backend=cast(Any, backend))
+        wm = HookedWorldModel.from_checkpoint(checkpoint_path, backend=backend, config=cfg)
 
         caps = wm.capabilities if hasattr(wm, "capabilities") else None
 

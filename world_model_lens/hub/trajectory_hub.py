@@ -1,7 +1,11 @@
 """Trajectory hub for managing trajectory datasets."""
 
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union, Sequence, cast
 from dataclasses import dataclass
+
+import os
+import pickle
+from pathlib import Path
 
 from world_model_lens.core import LatentTrajectory
 
@@ -84,23 +88,21 @@ class TrajectoryDataset:
             n_trajectories=len(self.trajectories),
             total_timesteps=sum(lengths),
             mean_length=sum(lengths) / len(lengths) if lengths else 0,
-            std_length=self._std(lengths),
+            std_length=self._std([float(l) for l in lengths]),
             mean_reward=sum(rewards) / len(rewards) if rewards else None,
             std_reward=self._std(rewards) if rewards else None,
         )
 
     @staticmethod
-    def _std(values: List[float]) -> float:
+    def _std(values: Sequence[float]) -> float:
         if not values:
             return 0.0
         mean = sum(values) / len(values)
         variance = sum((v - mean) ** 2 for v in values) / len(values)
-        return variance**0.5
+        return cast(float, variance**0.5)
 
 
-import os
-import pickle
-from pathlib import Path
+
 
 class TrajectoryHub:
     """Local storage for trajectory datasets.
@@ -149,7 +151,7 @@ class TrajectoryHub:
             raise FileNotFoundError(f"No dataset named '{name}' found at {path}")
 
         with open(path, "rb") as f:
-            return pickle.load(f)
+            return cast(TrajectoryDataset, pickle.load(f))
 
     def list_saved(self) -> List[str]:
         """List all saved dataset names."""

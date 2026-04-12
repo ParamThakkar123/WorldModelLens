@@ -22,6 +22,10 @@ import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+import warnings
+import torch
+from world_model_lens.backends.iris import IRISAdapter
+from world_model_lens.core.config import WorldModelConfig
 
 
 @dataclass
@@ -42,11 +46,7 @@ class ModelInfo:
     @property
     def is_downloadable(self) -> bool:
         """True when a real checkpoint is available and can be pulled."""
-        return (
-            not self.coming_soon
-            and self.hf_repo_id is not None
-            and self.hf_filename is not None
-        )
+        return not self.coming_soon and self.hf_repo_id is not None and self.hf_filename is not None
 
 
 class ModelHub:
@@ -224,10 +224,7 @@ class ModelHub:
             environment="DeepMind Control/Humanoid",
             coming_soon=True,
             description="TD-MPC2 trained on DM Control Humanoid.",
-            notes=(
-                "Real checkpoints at nicklashansen/tdmpc2. "
-                "Adapter key-mapping in progress."
-            ),
+            notes=("Real checkpoints at nicklashansen/tdmpc2. " "Adapter key-mapping in progress."),
         ),
     }
 
@@ -267,8 +264,7 @@ class ModelHub:
         if name not in cls._MODELS:
             available = list(cls._MODELS.keys())
             raise KeyError(
-                f"Model '{name}' not found in registry.\n"
-                f"Available keys: {available}"
+                f"Model '{name}' not found in registry.\n" f"Available keys: {available}"
             )
         return cls._MODELS[name]
 
@@ -447,17 +443,12 @@ class ModelHub:
         Returns:
             :class:`~world_model_lens.backends.iris.IRISAdapter` in eval mode.
         """
-        import torch
-
-        from world_model_lens.backends.iris import IRISAdapter
-        from world_model_lens.core.config import WorldModelConfig
+        
 
         try:
             ckpt = torch.load(checkpoint_path, map_location=device)
         except Exception as exc:
-            raise RuntimeError(
-                f"torch.load failed on '{checkpoint_path}'.\nCause: {exc}"
-            ) from exc
+            raise RuntimeError(f"torch.load failed on '{checkpoint_path}'.\nCause: {exc}") from exc
 
         if not isinstance(ckpt, dict):
             raise RuntimeError(
@@ -482,14 +473,10 @@ class ModelHub:
         if flat_format:
             # Split the flat dict by prefix — strip the leading component name.
             wm_state = {
-                k[len("world_model."):]: v
-                for k, v in ckpt.items()
-                if k.startswith("world_model.")
+                k[len("world_model.") :]: v for k, v in ckpt.items() if k.startswith("world_model.")
             }
             tokenizer_state = {
-                k[len("tokenizer."):]: v
-                for k, v in ckpt.items()
-                if k.startswith("tokenizer.")
+                k[len("tokenizer.") :]: v for k, v in ckpt.items() if k.startswith("tokenizer.")
             }
         elif "world_model" in ckpt and isinstance(ckpt.get("world_model"), dict):
             # Format B — nested dict (kept for forward-compatibility)
@@ -515,31 +502,46 @@ class ModelHub:
         # Try a few common keys for d_model inference
         d_model = cls._infer_dim(wm_state, "transformer.blocks.0.ln1.weight", dim=0, fallback=None)
         if d_model is None:
-            d_model = cls._infer_dim(wm_state, "transformer.ln.weight", dim=0, fallback=256)
+            d_model = (
+                cls._infer_dim(wm_state, "transformer.ln.weight", dim=0, fallback=256) or 256
+            )
 
-        n_layers = sum(
-            1 for k in wm_state
-            if k.startswith("transformer.blocks.") and k.endswith(".ln1.weight")
-        ) or 10
+        n_layers = (
+            sum(
+                1
+                for k in wm_state
+                if k.startswith("transformer.blocks.") and k.endswith(".ln1.weight")
+            )
+            or 10
+        )
 
-        max_seq_len = cls._infer_dim(wm_state, "pos_emb.weight", dim=0, fallback=1024)
+        max_seq_len = cls._infer_dim(wm_state, "pos_emb.weight", dim=0, fallback=1024) or 1024
 
         # token_embedding tells us the vocab size of the first embedder table
-        emb0_vocab = cls._infer_dim(wm_state, "embedder.embedding_tables.0.weight", dim=0, fallback=None)
+        emb0_vocab = cls._infer_dim(
+            wm_state, "embedder.embedding_tables.0.weight", dim=0, fallback=None
+        )
         if emb0_vocab is None:
-            emb0_vocab = cls._infer_dim(wm_state, "transformer.token_embedding.weight", dim=0, fallback=512)
+            emb0_vocab = (
+                cls._infer_dim(
+                    wm_state, "transformer.token_embedding.weight", dim=0, fallback=512
+                )
+                or 512
+            )
 
         # n_head: inferred from attention key weight shape [n_head*head_dim, d_model]
         # or just fallback to paper defaults based on d_model.
         n_head = 8 if d_model >= 512 else 4
 
-        print(f"[ModelHub] Inferred for '{checkpoint_path.split('/')[-1]}': "
-              f"d_model={d_model}, n_layers={n_layers}, vocab={emb0_vocab}, seq={max_seq_len}")
+        print(
+            f"[ModelHub] Inferred for '{checkpoint_path.split('/')[-1]}': "
+            f"d_model={d_model}, n_layers={n_layers}, vocab={emb0_vocab}, seq={max_seq_len}"
+        )
 
         cfg = WorldModelConfig(
             d_h=d_model,
-            d_obs=64 * 64 * 3,   # Atari 64×64 pixel observations (flattened)
-            d_action=18,          # max Atari action space
+            d_obs=64 * 64 * 3,  # Atari 64×64 pixel observations (flattened)
+            d_action=18,  # max Atari action space
             n_cat=1,
             n_cls=emb0_vocab,
             backend="iris",
@@ -560,7 +562,9 @@ class ModelHub:
         # IRISTransformer hardcodes Embedding(1024, d_model) but real checkpoints
         # may use a different sequence length (e.g. 340 for Pong).
         if max_seq_len != 1024 and hasattr(adapter.transformer, "pos_embedding"):
-            adapter.transformer.pos_embedding = torch.nn.Embedding(max_seq_len, d_model)
+            adapter.transformer.pos_embedding = torch.nn.Embedding(
+                int(max_seq_len), int(d_model)
+            )
 
         mapped, skipped = cls._map_iris_keys(wm_state, tokenizer_state)
 
@@ -584,8 +588,11 @@ class ModelHub:
 
         missing_keys, unexpected_keys = adapter.load_state_dict(safe_mapped, strict=False)
 
-        import warnings
-        all_issues: List[str] = skipped + shape_skipped + [f"unexpected:{k}" for k in unexpected_keys]
+        
+
+        all_issues: List[str] = (
+            skipped + shape_skipped + [f"unexpected:{k}" for k in unexpected_keys]
+        )
         if all_issues:
             warnings.warn(
                 f"IRIS checkpoint: {len(all_issues)} key(s) were skipped during load "
@@ -662,17 +669,17 @@ class ModelHub:
 
             # head_observations → head (reconstruction head)
             elif k.startswith("head_observations."):
-                suffix = k[len("head_observations."):]
+                suffix = k[len("head_observations.") :]
                 mapped[f"head.{suffix}"] = v
 
             # head_rewards → reward_head
             elif k.startswith("head_rewards."):
-                suffix = k[len("head_rewards."):]
+                suffix = k[len("head_rewards.") :]
                 mapped[f"reward_head.{suffix}"] = v
 
             # head_ends → continue_head
             elif k.startswith("head_ends."):
-                suffix = k[len("head_ends."):]
+                suffix = k[len("head_ends.") :]
                 mapped[f"continue_head.{suffix}"] = v
 
             # transformer.blocks.* — pass through as-is (same naming)
@@ -709,8 +716,8 @@ class ModelHub:
         state: Dict,
         key: str,
         dim: int = 0,
-        fallback: int = 256,
-    ) -> int:
+        fallback: Optional[int] = 256,
+    ) -> Optional[int]:
         """Read a tensor dimension from a state dict without crashing.
 
         Args:

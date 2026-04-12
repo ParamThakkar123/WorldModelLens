@@ -56,9 +56,7 @@ class WeightsDownloader:
 
     def __init__(self, cache_dir: Optional[str] = None) -> None:
         self.cache_dir = (
-            Path(cache_dir).expanduser()
-            if cache_dir
-            else self.DEFAULT_CACHE.expanduser()
+            Path(cache_dir).expanduser() if cache_dir else self.DEFAULT_CACHE.expanduser()
         )
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
@@ -127,7 +125,7 @@ class WeightsDownloader:
 
         elapsed = time.time() - t0
         if verbose:
-            size_mb = Path(raw_path).stat().st_size / (1024 ** 2)
+            size_mb = Path(raw_path).stat().st_size / (1024**2)
             print(f"  ✓ {name}  [{size_mb:.0f} MB, {elapsed:.1f}s]  →  {raw_path}")
 
         return Path(raw_path)
@@ -210,7 +208,7 @@ class WeightsDownloader:
                 if target.exists():
                     entry["cached"] = True
                     entry["path"] = str(target)
-                    entry["size_mb"] = round(target.stat().st_size / (1024 ** 2), 1)
+                    entry["size_mb"] = round(target.stat().st_size / (1024**2), 1)
             result[name] = entry
         return result
 
