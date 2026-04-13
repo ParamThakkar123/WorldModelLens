@@ -13,6 +13,7 @@ Key Design Principles:
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple, Union
+
 import torch
 import torch.nn as nn
 
@@ -451,7 +452,3 @@ class BaseModelAdapter(ABC, nn.Module):
         Override in subclasses to add validation logic.
         """
         pass
-
-
-# Backward-compatible alias during the base-adapter migration.
-WorldModelAdapter = BaseModelAdapter

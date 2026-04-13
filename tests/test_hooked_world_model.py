@@ -248,7 +248,7 @@ def test_imagine_samples_actions_from_policy():
         has_done_head=False,
     )
 
-    class PolicyAdapter(WorldModelAdapter):
+    class PolicyAdapter(BaseModelAdapter):
         def __init__(self, config):
             super().__init__(config)
             self._capabilities = WorldModelCapabilities(
@@ -312,7 +312,7 @@ def test_imagine_uses_provided_actions():
         has_done_head=False,
     )
 
-    class SimpleAdapter(WorldModelAdapter):
+    class SimpleAdapter(BaseModelAdapter):
         def __init__(self, config):
             super().__init__(config)
             self._capabilities = WorldModelCapabilities(
@@ -371,7 +371,7 @@ def test_transition_hook_applies():
         has_done_head=False,
     )
 
-    class SimpleAdapter(WorldModelAdapter):
+    class SimpleAdapter(BaseModelAdapter):
         def __init__(self, config):
             super().__init__(config)
             self._capabilities = WorldModelCapabilities(
