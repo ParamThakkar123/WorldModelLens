@@ -24,6 +24,9 @@ from world_model_lens.backends.planning_adapter import PlanningAdapter
 from world_model_lens.backends.tdmpc2 import TDMPC2Adapter
 from world_model_lens.backends.video_adapter import VideoWorldModelAdapter as SimpleVideoAdapter
 from world_model_lens.backends.video_world_model import VideoWorldModelAdapter
+from world_model_lens.backends.autonomous_driving import AutonomousDrivingAdapter
+from world_model_lens.backends.robotics import RoboticsAdapter
+from world_model_lens.backends.contrastive_predictive import ContrastiveAdapter
 
 
 @dataclass
@@ -155,6 +158,30 @@ def build_video_world_model() -> tuple[VideoWorldModelAdapter, AdapterConfig, to
     return adapter, config, obs_seq, None
 
 
+def build_autonomous_driving() -> tuple[AutonomousDrivingAdapter, AdapterConfig, torch.Tensor, torch.Tensor]:
+    config = make_config(d_h=32, d_z=32, d_obs=64, d_action=3, has_reward_head=True)
+    adapter = AutonomousDrivingAdapter(config)
+    obs_seq = torch.randn(4, 3, 64, 64)
+    action_seq = torch.randn(4, config.d_action)
+    return adapter, config, obs_seq, action_seq
+
+
+def build_robotics() -> tuple[RoboticsAdapter, AdapterConfig, torch.Tensor, torch.Tensor]:
+    config = make_config(d_h=32, d_z=32, d_obs=64, d_action=4, has_decoder=True, has_reward_head=True)
+    adapter = RoboticsAdapter(config)
+    obs_seq = torch.randn(4, 3, 64, 64)
+    action_seq = torch.randn(4, config.d_action)
+    return adapter, config, obs_seq, action_seq
+
+
+def build_contrastive() -> tuple[ContrastiveAdapter, AdapterConfig, torch.Tensor, torch.Tensor]:
+    config = make_config(d_h=32, d_z=32, d_obs=64, d_action=4)
+    adapter = ContrastiveAdapter(config)
+    obs_seq = torch.randn(4, config.d_obs)
+    action_seq = torch.randn(4, config.d_action)
+    return adapter, config, obs_seq, action_seq
+
+
 CASES = [
     AdapterCase("planning", build_planning),
     AdapterCase("decision_transformer", build_decision_transformer),
@@ -164,6 +191,9 @@ CASES = [
     AdapterCase("tdmpc2", build_tdmpc2),
     AdapterCase("video_adapter", build_video_adapter),
     AdapterCase("video_world_model", build_video_world_model),
+    AdapterCase("autonomous_driving", build_autonomous_driving),
+    AdapterCase("robotics", build_robotics),
+    AdapterCase("contrastive_predictive", build_contrastive),
 ]
 
 
