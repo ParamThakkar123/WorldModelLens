@@ -6,7 +6,7 @@ import random
 import logging
 from typing import Optional, Tuple, List, Dict, Any, Union
 
-from world_model_lens.backends.base_adapter import WorldModelAdapter, WorldModelCapabilities
+from world_model_lens.backends.base_adapter import BaseModelAdapter, WorldModelCapabilities
 from world_model_lens.backends.registry import register
 from world_model_lens.core.types import WorldModelFamily
 from world_model_lens.core.config import WorldModelConfig
@@ -207,7 +207,7 @@ class IJEPAPredictor(nn.Module):
 # ---------------------------------------------------------------------------
 
 @register("ijepa", WorldModelFamily.JEPA, "Image Joint-Embedding Predictive Architecture")
-class IJEPAAdapter(WorldModelAdapter):
+class IJEPAAdapter(BaseModelAdapter):
     """Architecturally correct adapter for I-JEPA."""
     
     def __init__(self, config: WorldModelConfig):
