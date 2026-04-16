@@ -10,6 +10,7 @@ from torch import Tensor
 from world_model_lens.core.hooks import HookContext
 from world_model_lens.core.activation_cache import ActivationCache
 from world_model_lens.core.latent_trajectory import LatentTrajectory
+from world_model_lens.core.types import WorldModelFamily
 
 
 class ForwardRunner:
@@ -48,7 +49,8 @@ class ForwardRunner:
         if is_patch_axis:
             return self._run_forward_patch_axis(obs_seq, cache, names_filter, ctx_mgr)
 
-        h: Tensor = self.hooked._adapter.initial_state()
+        adapter = getattr(self.hooked, "adapter", getattr(self.hooked, "_adapter", None))
+        h: Tensor = adapter.initial_state()
         z: Tensor | None = None
 
         manager = getattr(self.hooked, "_hook_cache_manager", None)
@@ -69,7 +71,8 @@ class ForwardRunner:
                 )
 
                 if manager is not None:
-                    obs_emb = self.hooked._adapter.encode(obs_seq[t])
+                    adapter = getattr(self.hooked, "adapter", getattr(self.hooked, "_adapter", None))
+                    obs_emb = adapter.encode(obs_seq[t])
                     obs_emb = manager.apply_and_cache(
                         "encoder.out", t, obs_emb, ctx, cache, names_filter
                     )
@@ -160,7 +163,7 @@ class ForwardRunner:
         obs_batch is implicitly [B, C, H, W] for a single step (or unbatched).
         """
         states = []
-        adapter = self.hooked._adapter
+        adapter = getattr(self.hooked, "adapter", getattr(self.hooked, "_adapter", None))
         manager = getattr(self.hooked, "_hook_cache_manager", None)
         
         with ctx_mgr:
