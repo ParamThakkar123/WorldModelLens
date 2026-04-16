@@ -4,11 +4,11 @@ import torch
 import pytest
 
 from world_model_lens import HookedWorldModel, HookPoint, WorldModelConfig
-from world_model_lens.backends.base_adapter import WorldModelAdapter, WorldModelCapabilities
+from world_model_lens.backends.base_adapter import BaseModelAdapter, WorldModelCapabilities
 from world_model_lens.core.hooks import HookContext
 
 
-class KVAdapter(WorldModelAdapter):
+class KVAdapter(BaseModelAdapter):
     """Simple adapter to run through run_with_cache; exposes (h, z) API.
 
     Nothing fancy — latents are small deterministic tensors so tests are
