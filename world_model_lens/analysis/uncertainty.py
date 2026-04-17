@@ -24,14 +24,14 @@ if TYPE_CHECKING:
 class UncertaintyResult:
     """Result of uncertainty analysis."""
 
-    mean_prediction: torch.Tensor | None = None
-    variance: torch.Tensor | None = None
-    entropy: torch.Tensor | None = None
-    confidence: torch.Tensor | None = None
-    epistemic_uncertainty: float | None = None
-    aleatoric_uncertainty: float | None = None
-    total_uncertainty: float | None = None
-    ood_scores: torch.Tensor | None = None
+    mean_prediction: Optional[torch.Tensor] = None
+    variance: Optional[torch.Tensor] = None
+    entropy: Optional[torch.Tensor] = None
+    confidence: Optional[torch.Tensor] = None
+    epistemic_uncertainty: Optional[float] = None
+    aleatoric_uncertainty: Optional[float] = None
+    total_uncertainty: Optional[float] = None
+    ood_scores: Optional[torch.Tensor] = None
     is_ood_fitted: bool = False
 
 
