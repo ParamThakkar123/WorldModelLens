@@ -207,7 +207,10 @@ class FaithfulnessAnalyzer:
     ) -> Optional[torch.Tensor]:
         """Get predictions from cache or compute via forward pass."""
         if predictor_fn is not None:
-            return predictor_fn(cache)
+            try:
+                return predictor_fn(cache)
+            except KeyError:
+                return None
 
         pred_keys = ["reward_pred", "value", "policy"]
         for key in pred_keys:
