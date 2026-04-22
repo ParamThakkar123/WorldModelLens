@@ -1,6 +1,6 @@
 # Examples
 
-World Model Lens includes 10 example scripts covering the main workflows: collecting activations, probing representations, patching components, branching imagined futures, and running causal comparisons.
+World Model Lens includes 12 example scripts covering the main workflows: collecting activations, probing representations, patching components, branching imagined futures, running causal comparisons, and layer-by-layer analysis.
 
 ## How To Use This Section
 
@@ -56,6 +56,7 @@ examples/causal-analysis
 | 09 | `examples/09_toy_scientific_dynamics.py` | Scientific dynamics | Intermediate | None | `ToyScientificAdapter`, geometry + belief tools | Surprise and geometry comparisons across systems |
 | 10 | `examples/10_causal_engine.py` | Counterfactual engine | Advanced | None | `CounterfactualEngine`, `Intervention` | Intervention tables and divergence metrics |
 | 11 | `examples/11_unified_disentanglement.py` | Multi-component evaluation | Intermediate | None | `DisentanglementEvaluationSuite` | Unified MIG/DCI/SAP across context_encoder, predictor, target_encoder |
+| 12 | `examples/layer_cka_analysis.py` | Layer-by-layer CKA analysis | Intermediate | None | `LayerCKAAnalyzer`, `IJEPAAdapter` | CKA similarity matrices, convergence plots, patch embedding PCA |
 
 ## Suggested Paths
 
