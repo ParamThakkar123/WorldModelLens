@@ -255,7 +255,10 @@ class FaithfulnessAnalyzer:
         """
         _, cache = self.wm.run_with_cache(observations, actions)
 
-        original = cache[target_component]
+        try:
+            original = cache[target_component]
+        except KeyError:
+            return []
 
         original_flat = original.flatten(1)
         num_dims = original_flat.shape[-1]

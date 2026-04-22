@@ -54,6 +54,7 @@ dev = [
     "mypy",
     "black",
     "hatch",
+    "flake8",
 ]
 docs = [
     "sphinx",

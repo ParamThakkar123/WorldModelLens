@@ -50,7 +50,7 @@ class TestAOPCResult:
             k_values=[1, 2, 3],
             component="z_posterior",
         )
-        import matplotlib
+        matplotlib = pytest.importorskip("matplotlib")
 
         matplotlib.use("Agg")
         fig = result.plot()
