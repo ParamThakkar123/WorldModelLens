@@ -93,7 +93,7 @@ class FaithfulnessAnalyzer:
         Args:
             observations: Observation sequence [T, ...].
             actions: Optional action sequence [T, d_action].
-            target_component: Component to ablate ("z_posterior", "h", etc.).
+            target_component: Component to ablate (must exist in cache).
             predictor_fn: Custom predictor function. If None, uses cached predictions.
             max_k: Maximum K to ablate. If None, uses all dimensions.
             normalize: Whether to normalize by max MSE.
@@ -104,15 +104,7 @@ class FaithfulnessAnalyzer:
         """
         _, cache = self.wm.run_with_cache(observations, actions)
 
-        try:
-            original = cache[target_component]
-        except KeyError:
-            return AOPCResult(
-                aopc_score=0.0,
-                mses=[],
-                k_values=[],
-                component=target_component,
-            )
+        original = cache[target_component]
 
         original_device = original.device
         original_flat = original.flatten(1)
@@ -254,7 +246,7 @@ class FaithfulnessAnalyzer:
         Args:
             observations: Observation sequence.
             actions: Optional action sequence.
-            target_component: Component to ablate.
+            target_component: Component to ablate (must exist in cache).
             predictor_fn: Optional predictor function.
             k_values: Specific K values to test. If None, uses [1, 2, 5, 10, 20, ...].
 
@@ -263,10 +255,7 @@ class FaithfulnessAnalyzer:
         """
         _, cache = self.wm.run_with_cache(observations, actions)
 
-        try:
-            original = cache[target_component]
-        except KeyError:
-            return []
+        original = cache[target_component]
 
         original_flat = original.flatten(1)
         num_dims = original_flat.shape[-1]
