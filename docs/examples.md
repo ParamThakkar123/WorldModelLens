@@ -55,8 +55,8 @@ examples/causal-analysis
 | 08 | `examples/08_toy_video_world_model.py` | Geometry and memory | Intermediate | None | `GeometryAnalyzer`, `TemporalMemoryProber` | PCA, trajectory metrics, memory retention |
 | 09 | `examples/09_toy_scientific_dynamics.py` | Scientific dynamics | Intermediate | None | `ToyScientificAdapter`, geometry + belief tools | Surprise and geometry comparisons across systems |
 | 10 | `examples/10_causal_engine.py` | Counterfactual engine | Advanced | None | `CounterfactualEngine`, `Intervention` | Intervention tables and divergence metrics |
+| 10 | `examples/10_causal_engine.py` | Counterfactual engine | Advanced | None | `CounterfactualEngine`, `Intervention` | Intervention tables and divergence metrics |
 | 11 | `examples/11_unified_disentanglement.py` | Multi-component evaluation | Intermediate | None | `DisentanglementEvaluationSuite` | Unified MIG/DCI/SAP across context_encoder, predictor, target_encoder |
-| 12 | `examples/12_faithfulness_aopc.py` | Faithfulness analysis | Intermediate | None | `FaithfulnessAnalyzer` | AOPC scores, perturbation curves, component comparison |
 
 ## Suggested Paths
 
@@ -82,7 +82,6 @@ examples/causal-analysis
 
 - Example 05: surprise, saliency, hallucination
 - Example 10: intervention comparison and divergence tracing
-- Example 12: faithfulness analysis
 
 ## Common Patterns Across Examples
 
