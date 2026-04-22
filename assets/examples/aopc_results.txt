@@ -1,0 +1,55 @@
+# Example AOPC Faithfulness Analysis Results
+
+This file shows example output from running faithfulness analysis on a toy video world model.
+
+## Model Setup
+- ToyVideoAdapter with latent_dim=32, hidden_dim=128
+- Input: 50 frames of 32x32 RGB video (random noise)
+- Components analyzed: z_posterior, h
+
+## AOPC Results
+
+### z_posterior Component
+AOPC Score: 2.6103
+Perturbation curve:
+K=1: MSE delta=0.000000
+K=2: MSE delta=0.000000
+K=3: MSE delta=0.000000
+K=4: MSE delta=0.000000
+K=5: MSE delta=0.000000
+K=6: MSE delta=0.000000
+K=7: MSE delta=0.000000
+K=8: MSE delta=0.000000
+K=9: MSE delta=0.000000
+K=10: MSE delta=0.000000
+
+### h Component (Hidden State)
+AOPC Score: 0.0000
+Perturbation curve:
+K=1: MSE delta=0.000000
+K=2: MSE delta=0.000000
+K=3: MSE delta=0.000000
+K=4: MSE delta=0.000000
+K=5: MSE delta=0.000000
+
+## Component Comparison
+Faithfulness scores across components:
+- z_posterior: 2.6103
+- h: 0.0000
+
+Most faithful component: z_posterior (score: 2.6103)
+
+## Interpretation
+- Higher AOPC scores indicate more faithful representations
+- In this toy example, z_posterior shows some faithfulness while h shows none
+- Real models would show more variation in perturbation curves
+- The curve would typically increase as more important dimensions are ablated
+
+## Usage Code
+```python
+from world_model_lens.analysis import FaithfulnessAnalyzer
+
+analyzer = FaithfulnessAnalyzer(wm)
+result = analyzer.aopc(observations, target_component="z_posterior")
+print(f"AOPC Score: {result.aopc_score:.4f}")
+```
