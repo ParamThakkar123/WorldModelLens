@@ -1,0 +1,36 @@
+Unified Disentanglement Evaluation Results
+==================================================
+
+Components evaluated: ['h', 'z_posterior', 'z_prior']
+Metrics: ['MIG', 'DCI', 'SAP']
+Factors: ['velocity', 'color', 'size', 'position_x']
+
+Per-Component Results:
+
+h:
+  MIG: 0.0050
+  DCI_disentanglement: 0.8651
+  DCI_completeness: 0.8411
+  DCI_informativeness: 0.9950
+  SAP: 0.0006
+
+z_posterior:
+  MIG: 0.0025
+  DCI_disentanglement: 0.8773
+  DCI_completeness: 0.8528
+  DCI_informativeness: 1.0000
+  SAP: 0.0002
+
+z_prior:
+  MIG: 0.0018
+  DCI_disentanglement: 0.8521
+  DCI_completeness: 0.8233
+  DCI_informativeness: 0.9998
+  SAP: 0.0000
+
+Summary Scores:
+  MIG: 0.0031
+  DCI_disentanglement: 0.8649
+  DCI_completeness: 0.8391
+  DCI_informativeness: 0.9983
+  SAP: 0.0003
