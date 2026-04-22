@@ -235,6 +235,11 @@ def test_run_with_cache_tracks_action_sources(hooked_wm, fake_obs_seq, fake_acti
             assert state.action_source.temperature is None
 
 
+def test_non_jepa_run_with_cache_does_not_use_forward_runner_metadata(hooked_wm, fake_obs_seq, fake_action_seq):
+    """Non-JEPA models should remain on the stable wrapper execution path."""
+    traj, _ = hooked_wm.run_with_cache(fake_obs_seq, fake_action_seq)
+    assert traj.metadata.get("forward_runner") is None
+
 def test_imagine_samples_actions_from_policy():
     """Test that imagine samples actions from policy when not provided."""
     cfg = WorldModelConfig(
