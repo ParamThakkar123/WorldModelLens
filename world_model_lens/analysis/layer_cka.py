@@ -9,7 +9,6 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import torch
 import numpy as np
-import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 
 from world_model_lens.analysis.continual_learning import ContinualLearningAuditor
@@ -156,14 +155,14 @@ class LayerCKAAnalyzer:
             Dict mapping layer names to representations [B, n_patches, dim]
         """
         # Determine number of layers available
-        if hasattr(self.wm.adapter, 'context_encoder'):
+        if hasattr(self.wm.adapter, "context_encoder"):
             encoder = self.wm.adapter.context_encoder
-        elif hasattr(self.wm.adapter, 'encoder'):
+        elif hasattr(self.wm.adapter, "encoder"):
             encoder = self.wm.adapter.encoder
         else:
             raise ValueError("Could not find encoder in world model adapter")
 
-        if hasattr(encoder, 'blocks'):
+        if hasattr(encoder, "blocks"):
             n_layers = len(encoder.blocks)
         else:
             raise ValueError("Encoder does not have transformer blocks")
@@ -180,6 +179,7 @@ class LayerCKAAnalyzer:
                 # Store the tensor [B, n_patches, dim]
                 layer_outputs[layer_name] = tensor.detach().clone()
                 return tensor
+
             return hook_fn
 
         # Create HookPoint objects for each layer
@@ -187,11 +187,7 @@ class LayerCKAAnalyzer:
 
         for i in range(n_layers):
             hook_name = layer_hook_pattern.format(i)
-            hook_point = HookPoint(
-                name=hook_name,
-                fn=make_hook("layer_{}".format(i)),
-                stage="post"
-            )
+            hook_point = HookPoint(name=hook_name, fn=make_hook("layer_{}".format(i)), stage="post")
             hooks.append(hook_point)
 
         try:
@@ -246,7 +242,7 @@ class LayerCKAAnalyzer:
         result: LayerCKAResult,
         figsize: Tuple[int, int] = (12, 8),
         save_path: Optional[str] = None,
-    ) -> plt.Figure:
+    ) -> Optional[Any]:
         """Plot layer-by-layer convergence analysis.
 
         Args:
@@ -255,62 +251,85 @@ class LayerCKAAnalyzer:
             save_path: Optional path to save plot
 
         Returns:
-            matplotlib Figure
+            matplotlib Figure or None if matplotlib not available
         """
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError:
+            print("matplotlib not available, skipping plot")
+            return None
         fig, axes = plt.subplots(2, 2, figsize=figsize)
 
         # Plot 1: Average CKA per layer transition
-        layer_transitions = ["{}→{}".format(result.layer_names[i], result.layer_names[i+1])
-                           for i in range(len(result.layer_names)-1)]
+        layer_transitions = [
+            "{}→{}".format(result.layer_names[i], result.layer_names[i + 1])
+            for i in range(len(result.layer_names) - 1)
+        ]
 
-        axes[0, 0].plot(result.avg_cka_per_layer, 'bo-', linewidth=2, markersize=6)
+        axes[0, 0].plot(result.avg_cka_per_layer, "bo-", linewidth=2, markersize=6)
         axes[0, 0].set_xticks(range(len(layer_transitions)))
-        axes[0, 0].set_xticklabels(layer_transitions, rotation=45, ha='right')
-        axes[0, 0].set_ylabel('Average CKA')
-        axes[0, 0].set_title('Layer-by-Layer Representation Similarity')
+        axes[0, 0].set_xticklabels(layer_transitions, rotation=45, ha="right")
+        axes[0, 0].set_ylabel("Average CKA")
+        axes[0, 0].set_title("Layer-by-Layer Representation Similarity")
         axes[0, 0].grid(True, alpha=0.3)
 
         # Plot 2: CKA matrix heatmap
-        im = axes[0, 1].imshow(result.cka_matrix.T, aspect='auto', cmap='viridis')
+        im = axes[0, 1].imshow(result.cka_matrix.T, aspect="auto", cmap="viridis")
         axes[0, 1].set_xticks(range(len(layer_transitions)))
-        axes[0, 1].set_xticklabels(layer_transitions, rotation=45, ha='right')
-        axes[0, 1].set_ylabel('Patch Index')
-        axes[0, 1].set_title('CKA Matrix (Patches × Layers)')
+        axes[0, 1].set_xticklabels(layer_transitions, rotation=45, ha="right")
+        axes[0, 1].set_ylabel("Patch Index")
+        axes[0, 1].set_title("CKA Matrix (Patches × Layers)")
         plt.colorbar(im, ax=axes[0, 1])
 
         # Plot 3: Patch convergence distribution
-        axes[1, 0].hist(result.patch_convergence, bins=20, alpha=0.7, edgecolor='black')
-        axes[1, 0].axvline(result.patch_convergence.mean(), color='red', linestyle='--',
-                          label='Mean: {:.3f}'.format(result.patch_convergence.mean()))
-        axes[1, 0].set_xlabel('Convergence Score')
-        axes[1, 0].set_ylabel('Number of Patches')
-        axes[1, 0].set_title('Patch Convergence Distribution')
+        axes[1, 0].hist(result.patch_convergence, bins=20, alpha=0.7, edgecolor="black")
+        axes[1, 0].axvline(
+            result.patch_convergence.mean(),
+            color="red",
+            linestyle="--",
+            label="Mean: {:.3f}".format(result.patch_convergence.mean()),
+        )
+        axes[1, 0].set_xlabel("Convergence Score")
+        axes[1, 0].set_ylabel("Number of Patches")
+        axes[1, 0].set_title("Patch Convergence Distribution")
         axes[1, 0].legend()
         axes[1, 0].grid(True, alpha=0.3)
 
         # Plot 4: Convergence trend analysis
-        axes[1, 1].text(0.1, 0.8, '{:.3f}'.format(result.semantic_convergence_score),
-                       fontsize=14, fontweight='bold')
-        axes[1, 1].text(0.1, 0.6, 'Final CKA: {:.3f}'.format(result.avg_cka_per_layer[-1]),
-                       fontsize=12)
-        axes[1, 1].text(0.1, 0.4, 'CKA Range: {:.3f} - {:.3f}'.format(result.avg_cka_per_layer.min(), result.avg_cka_per_layer.max()),
-                       fontsize=12)
+        axes[1, 1].text(
+            0.1,
+            0.8,
+            "{:.3f}".format(result.semantic_convergence_score),
+            fontsize=14,
+            fontweight="bold",
+        )
+        axes[1, 1].text(
+            0.1, 0.6, "Final CKA: {:.3f}".format(result.avg_cka_per_layer[-1]), fontsize=12
+        )
+        axes[1, 1].text(
+            0.1,
+            0.4,
+            "CKA Range: {:.3f} - {:.3f}".format(
+                result.avg_cka_per_layer.min(), result.avg_cka_per_layer.max()
+            ),
+            fontsize=12,
+        )
 
         # Add convergence arrow
         if result.avg_cka_per_layer[-1] > result.avg_cka_per_layer[0]:
-            axes[1, 1].text(0.1, 0.2, '↗ Representations Converging', fontsize=12, color='green')
+            axes[1, 1].text(0.1, 0.2, "↗ Representations Converging", fontsize=12, color="green")
         else:
-            axes[1, 1].text(0.1, 0.2, '↘ Representations Diverging', fontsize=12, color='red')
+            axes[1, 1].text(0.1, 0.2, "↘ Representations Diverging", fontsize=12, color="red")
 
         axes[1, 1].set_xlim(0, 1)
         axes[1, 1].set_ylim(0, 1)
-        axes[1, 1].set_title('Semantic Convergence Summary')
-        axes[1, 1].axis('off')
+        axes[1, 1].set_title("Semantic Convergence Summary")
+        axes[1, 1].axis("off")
 
         plt.tight_layout()
 
         if save_path:
-            plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            plt.savefig(save_path, dpi=300, bbox_inches="tight")
 
         return fig
 
@@ -321,7 +340,7 @@ class LayerCKAAnalyzer:
         layer_hook_pattern: str = "blocks.{}.hook_resid_post",
         n_components: int = 2,
         save_path: Optional[str] = None,
-    ) -> Any:
+    ) -> Optional[Any]:
         """Plot PCA of patch embeddings to visualize semantic convergence.
 
         Args:
@@ -332,8 +351,13 @@ class LayerCKAAnalyzer:
             save_path: Optional save path
 
         Returns:
-            matplotlib Figure
+            matplotlib Figure or None if matplotlib not available
         """
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError:
+            print("matplotlib not available, skipping plot")
+            return None
         # Extract representations from first and last layers
         layer_reps = self._extract_layer_representations(
             observations, layer_hook_pattern, max_layers=None
@@ -358,26 +382,30 @@ class LayerCKAAnalyzer:
             fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
 
             # First layer
-            ax1.scatter(first_pca[:, 0], first_pca[:, 1], alpha=0.6, c='blue', label='First Layer')
-            ax1.set_title('Patch Embeddings - First Layer')
-            ax1.set_xlabel('PC1')
-            ax1.set_ylabel('PC2')
+            ax1.scatter(first_pca[:, 0], first_pca[:, 1], alpha=0.6, c="blue", label="First Layer")
+            ax1.set_title("Patch Embeddings - First Layer")
+            ax1.set_xlabel("PC1")
+            ax1.set_ylabel("PC2")
             ax1.legend()
             ax1.grid(True, alpha=0.3)
 
             # Last layer
-            ax2.scatter(last_pca[:, 0], last_pca[:, 1], alpha=0.6, c='red', label='Last Layer')
-            ax2.set_title('Patch Embeddings - Last Layer')
-            ax2.set_xlabel('PC1')
-            ax2.set_ylabel('PC2')
+            ax2.scatter(last_pca[:, 0], last_pca[:, 1], alpha=0.6, c="red", label="Last Layer")
+            ax2.set_title("Patch Embeddings - Last Layer")
+            ax2.set_xlabel("PC1")
+            ax2.set_ylabel("PC2")
             ax2.legend()
             ax2.grid(True, alpha=0.3)
 
             # Set same axis limits
-            xlims = (min(ax1.get_xlim()[0], ax2.get_xlim()[0]),
-                    max(ax1.get_xlim()[1], ax2.get_xlim()[1]))
-            ylims = (min(ax1.get_ylim()[0], ax2.get_ylim()[0]),
-                    max(ax1.get_ylim()[1], ax2.get_ylim()[1]))
+            xlims = (
+                min(ax1.get_xlim()[0], ax2.get_xlim()[0]),
+                max(ax1.get_xlim()[1], ax2.get_xlim()[1]),
+            )
+            ylims = (
+                min(ax1.get_ylim()[0], ax2.get_ylim()[0]),
+                max(ax1.get_ylim()[1], ax2.get_ylim()[1]),
+            )
 
             ax1.set_xlim(xlims)
             ax2.set_xlim(xlims)
@@ -388,32 +416,48 @@ class LayerCKAAnalyzer:
             fig = plt.figure(figsize=(16, 6))
 
             # First layer
-            ax1 = fig.add_subplot(121, projection='3d')
-            ax1.scatter(first_pca[:, 0], first_pca[:, 1], first_pca[:, 2],
-                       alpha=0.6, c='blue', label='First Layer')
-            ax1.set_title('Patch Embeddings - First Layer')
-            ax1.set_xlabel('PC1')
-            ax1.set_ylabel('PC2')
-            ax1.set_zlabel('PC3')
+            ax1 = fig.add_subplot(121, projection="3d")
+            ax1.scatter(
+                first_pca[:, 0],
+                first_pca[:, 1],
+                first_pca[:, 2],
+                alpha=0.6,
+                c="blue",
+                label="First Layer",
+            )
+            ax1.set_title("Patch Embeddings - First Layer")
+            ax1.set_xlabel("PC1")
+            ax1.set_ylabel("PC2")
+            ax1.set_zlabel("PC3")
             ax1.legend()
 
             # Last layer
-            ax2 = fig.add_subplot(122, projection='3d')
-            ax2.scatter(last_pca[:, 0], last_pca[:, 1], last_pca[:, 2],
-                       alpha=0.6, c='red', label='Last Layer')
-            ax2.set_title('Patch Embeddings - Last Layer')
-            ax2.set_xlabel('PC1')
-            ax2.set_ylabel('PC2')
-            ax2.set_zlabel('PC3')
+            ax2 = fig.add_subplot(122, projection="3d")
+            ax2.scatter(
+                last_pca[:, 0],
+                last_pca[:, 1],
+                last_pca[:, 2],
+                alpha=0.6,
+                c="red",
+                label="Last Layer",
+            )
+            ax2.set_title("Patch Embeddings - Last Layer")
+            ax2.set_xlabel("PC1")
+            ax2.set_ylabel("PC2")
+            ax2.set_zlabel("PC3")
             ax2.legend()
 
         else:
             raise ValueError("n_components must be 2 or 3, got {}".format(n_components))
 
-        plt.suptitle('Patch Embedding Convergence (CKA Score: {:.3f})'.format(result.semantic_convergence_score))
+        plt.suptitle(
+            "Patch Embedding Convergence (CKA Score: {:.3f})".format(
+                result.semantic_convergence_score
+            )
+        )
         plt.tight_layout()
 
         if save_path:
-            plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            plt.savefig(save_path, dpi=300, bbox_inches="tight")
 
         return fig
