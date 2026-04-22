@@ -24,21 +24,82 @@ Given a component \( c \) with activations \( \mathbf{z} \in \mathbb{R}^{T \time
 2. For each K: Ablate top-K dimensions, compute MSE: \( \delta_K = \|p(\mathbf{z}) - p(\mathbf{z}_{\setminus \{d_1,\dots,d_K\}})\|^2 \)
 3. AOPC = \( \int_0^D \delta(k) \, dk \) (trapezoidal approximation)
 
-### Usage
+### Basic Usage
 
 ```python
 from world_model_lens.analysis import FaithfulnessAnalyzer
+from world_model_lens import HookedWorldModel
 
+# Initialize analyzer with your world model
 analyzer = FaithfulnessAnalyzer(wm)
 
-# Basic AOPC computation
+# Compute AOPC for latent representations
+observations = torch.randn(20, 3, 64, 64)  # Your data
 result = analyzer.aopc(observations, target_component="z_posterior")
-print(f"AOPC Score: {result.aopc_score:.4f}")
 
-# Detailed perturbation curve
-curve = analyzer.perturbation_curve(observations, k_values=[1, 5, 10, 20])
+print(f"AOPC Score: {result.aopc_score:.4f}")
+result.plot()  # Visualize perturbation curve
+```
+
+### Advanced Usage
+
+```python
+# Custom predictor function (e.g., for reconstruction loss)
+def predictor_fn(cache):
+    return cache["reconstruction"]
+
+# Compare faithfulness across components
+components = ["z_posterior", "h", "context_encoder"]
+scores = {}
+for comp in components:
+    try:
+        result = analyzer.aopc(
+            observations,
+            target_component=comp,
+            predictor_fn=predictor_fn,
+            max_k=10,
+            normalize=True
+        )
+        scores[comp] = result.aopc_score
+    except KeyError:
+        scores[comp] = None
+
+print("Faithfulness scores:", scores)
+```
+
+### Perturbation Curve Analysis
+
+```python
+# Get detailed perturbation points
+curve = analyzer.perturbation_curve(
+    observations,
+    target_component="z_posterior",
+    k_values=[1, 2, 5, 10, 15, 20]
+)
+
 for point in curve:
-    print(f"K={point.k}: MSE delta={point.mse_delta:.4f}")
+    print(f"Ablating {point.k} dims: MSE delta = {point.mse_delta:.6f}")
+    print(f"Ablated dimensions: {point.ablated_dims}")
+```
+
+### Custom Dimension Importance
+
+```python
+# Use gradient-based importance instead of magnitude
+with torch.enable_grad():
+    # Compute gradients w.r.t. some loss
+    loss = some_loss_function(wm_output)
+    loss.backward()
+
+# Get gradient magnitudes as importance
+gradients = cache["z_posterior"].grad
+dim_importance = gradients.abs().mean(dim=0)
+
+result = analyzer.aopc(
+    observations,
+    target_component="z_posterior",
+    dim_importance=dim_importance
+)
 ```
 
 ### Parameters
