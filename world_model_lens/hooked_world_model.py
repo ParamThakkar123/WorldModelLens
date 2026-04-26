@@ -208,10 +208,14 @@ class HookedWorldModel:
     def _latent_traj_to_world_traj(self, latent_traj: LatentTrajectory) -> WorldTrajectory:
         """Convert ForwardRunner output into the public WorldTrajectory API."""
         states_out = []
+        family = self._get_world_model_family()
         for i, latent_state in enumerate(latent_traj.states):
             h_t = getattr(latent_state, "h_t", None)
             if not isinstance(h_t, torch.Tensor):
-                h_t = torch.zeros(1)
+                raise TypeError(
+                    "ForwardRunner produced a latent state without a tensor h_t; "
+                    f"got {type(h_t).__name__} at index {i}."
+                )
 
             obs_encoding = getattr(latent_state, "obs_encoding", None)
             if isinstance(obs_encoding, torch.Tensor):
@@ -221,9 +225,15 @@ class HookedWorldModel:
             z_posterior = getattr(latent_state, "z_posterior", None)
             z_prior = getattr(latent_state, "z_prior", None)
             if isinstance(z_posterior, torch.Tensor):
-                metadata.setdefault("z_posterior", z_posterior.detach().clone())
+                metadata.setdefault(
+                    "z_posterior",
+                    self._normalize_world_state_tensor(z_posterior.detach().clone()),
+                )
             if isinstance(z_prior, torch.Tensor):
-                metadata.setdefault("z_prior", z_prior.detach().clone())
+                metadata.setdefault(
+                    "z_prior",
+                    self._normalize_world_state_tensor(z_prior.detach().clone()),
+                )
 
             states_out.append(
                 WorldState(
@@ -244,9 +254,7 @@ class HookedWorldModel:
             source="imagined" if latent_traj.imagined else "real",
             metadata={
                 "forward_runner": True,
-                "world_model_family": self._get_world_model_family().name
-                if self._get_world_model_family() is not None
-                else None,
+                "world_model_family": family.name if family is not None else None,
                 "latent_episode_id": latent_traj.episode_id,
             },
         )
