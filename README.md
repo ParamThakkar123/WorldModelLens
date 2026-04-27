@@ -322,6 +322,7 @@ wm.run_with_hooks(observations, fwd_hooks=[("block.hook_resid_post", hook_fn)])
 | **Circuit Discovery** | Find important computation subgraphs |
 | **Causal Tracing** | Trace causal pathways through the model |
 | **Sparse Autoencoders** | Train SAEs for disentangled feature discovery |
+| **Layer-by-Layer CKA** | Analyze patch representation convergence in vision models |
 | **Disentanglement Metrics** | MIG, DCI, SAP scores |
 
 ### 📊 Benchmarks & Metrics
